@@ -98,6 +98,12 @@ export async function runTenantSync(tenantId, mode = 'incremental') {
     throw error;
   }
 
+  if (tenant.provider !== 'trier') {
+    const error = new Error('Sincronizacao Trier nao se aplica a instancias que nao usam provider "trier".');
+    error.statusCode = 400;
+    throw error;
+  }
+
   const syncBatchId = crypto.randomUUID();
   const window = buildWindow(tenant, mode);
 

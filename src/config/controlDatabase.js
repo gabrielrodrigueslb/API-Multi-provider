@@ -33,6 +33,7 @@ export async function bootstrapControlDatabase() {
   await controlPool.query(`
     create table if not exists ${schemaName}.tenant_instances (
       id bigserial primary key,
+      provider text not null default 'trier',
       name text not null,
       api_key_hash text not null unique,
       trier_instance text not null default '',
@@ -61,6 +62,7 @@ export async function bootstrapControlDatabase() {
   `);
   await controlPool.query(`
     alter table ${schemaName}.tenant_instances
+    add column if not exists provider text not null default 'trier',
     add column if not exists trier_instance text,
     add column if not exists trier_base_url text,
     add column if not exists trier_token text,
@@ -89,6 +91,10 @@ export async function bootstrapControlDatabase() {
   await controlPool.query(`
     create index if not exists tenant_instances_status_idx
       on ${schemaName}.tenant_instances (status)
+  `);
+  await controlPool.query(`
+    create index if not exists tenant_instances_provider_idx
+      on ${schemaName}.tenant_instances (provider)
   `);
 }
 

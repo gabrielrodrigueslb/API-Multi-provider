@@ -1,15 +1,21 @@
-# API Trier Multi-tenant
+# API Multi-provider
 
-API Node.js para integrar clientes Trier, sincronizar produtos e descontos para um cache PostgreSQL por cliente e consultar produtos por EAN com autenticacao por `x-api-key`.
+API Node.js para operar multiplos clientes com dois providers no mesmo codigo:
+
+- `trier`: sincroniza produtos e descontos para um cache PostgreSQL por cliente
+- `alpha7`: consulta diretamente o banco do cliente
+
+O consumo continua unificado por `x-api-key`.
 
 ## O que a API faz
 
 - cadastra clientes em um banco master
-- salva token Trier e credenciais do banco de cache do cliente
-- provisiona o banco/schema do cliente no momento do cadastro
-- sincroniza produtos e descontos da Trier com BullMQ + Redis
+- salva provider, credenciais de acesso e dados do banco do cliente
+- para Trier, provisiona o banco/schema do cache no momento do cadastro
+- para Trier, sincroniza produtos e descontos com BullMQ + Redis
+- para Alpha 7, consulta direto no banco do cliente
 - consulta produtos por EAN usando a `apiKey` do cliente
-- retorna somente descontos ativos no momento da consulta
+- retorna somente descontos/promocoes ativas no momento da consulta
 
 ## Requisitos
 
@@ -70,26 +76,25 @@ npm.cmd run dev
 ## Fluxo atual
 
 1. A API sobe conectando no banco master.
-2. Voce cria um cliente em `POST /api/admin/clientes`.
+2. Voce cria um cliente em `POST /api/admin/clientes/trier` ou `POST /api/admin/clientes/alpha7`.
 3. Nesse momento a API:
    - valida os dados
-   - cria o database do cliente quando `TENANT_DB_PROVISION_ENABLED=true`
-   - cria o schema `trier_cache` e as tabelas locais
    - grava o cliente no banco master
    - devolve a `apiKey`
-   - opcionalmente ja enfileira a sincronizacao inicial quando `autoSync=true`
-4. Voce dispara a carga inicial com `POST /api/admin/clientes/:id/sincronizar` usando `mode=bootstrap`.
-5. Depois disso, BullMQ mantem o cliente sincronizado pelos crons configurados.
-6. O consumo da API acontece por `POST /api/consultar-eans` usando a `apiKey` do cliente.
+   - para `provider=trier`, cria o database do cliente quando `TENANT_DB_PROVISION_ENABLED=true`
+   - para `provider=trier`, cria o schema `trier_cache` e as tabelas locais
+   - para `provider=trier`, opcionalmente ja enfileira a sincronizacao inicial quando `autoSync=true`
+4. Se o cliente for Trier, BullMQ mantem o cliente sincronizado pelos crons configurados.
+5. O consumo da API acontece por rota especifica do provider usando a `apiKey` do cliente.
 
 Observacao:
 
-- o provisionamento do banco ja faz parte da criacao do cliente
+- o provisionamento do banco ja faz parte da criacao do cliente Trier
 - nao existe mais necessidade operacional de chamar um endpoint separado para preparar banco/schema
 
 ## Estrutura persistida por cliente
 
-No banco de cache do cliente, schema `trier_cache`:
+Para clientes Trier, no banco de cache do cliente, schema `trier_cache`:
 
 - `products`
 - `product_discounts`
@@ -133,9 +138,9 @@ Verifica se a API esta viva.
 
 Lista clientes cadastrados no banco master.
 
-### `POST /api/admin/clientes`
+### `POST /api/admin/clientes/trier`
 
-Cria o cliente e provisiona o banco/schema do cache.
+Cria um cliente Trier e provisiona o banco/schema do cache.
 
 Body:
 
@@ -215,13 +220,36 @@ Exemplo criando o cliente e ja disparando a sincronizacao inicial:
 }
 ```
 
+### `POST /api/admin/clientes/alpha7`
+
+Cria um cliente Alpha 7.
+
+Body:
+
+```json
+{
+  "name": "cliente_alpha7",
+  "host": "localhost",
+  "port": 5432,
+  "database": "alpha7_cliente01",
+  "user": "postgres",
+  "password": "postgres",
+  "ssl": false
+}
+```
+
+Observacoes:
+
+- `trierToken` nao e usado para Alpha 7
+- `autoSync` e BullMQ so se aplicam a Trier
+
 ### `POST /api/admin/clientes/:id/testar-conexao`
 
 Testa a conexao com o banco do cliente.
 
-### `POST /api/admin/clientes/:id/sincronizar`
+### `POST /api/admin/clientes/trier/:id/sincronizar`
 
-Enfileira sincronizacao manual.
+Enfileira sincronizacao manual de um cliente Trier.
 
 Body:
 
@@ -248,9 +276,9 @@ Resposta:
 }
 ```
 
-### `POST /api/consultar-eans`
+### `POST /api/trier/consultar-eans`
 
-Consulta produtos do cliente por EAN.
+Consulta produtos do cliente Trier por EAN.
 
 Body:
 
@@ -305,23 +333,61 @@ Resposta:
 }
 ```
 
+### `POST /api/alpha7/consultar-eans`
+
+Consulta produtos do cliente Alpha 7 por EAN.
+
+Resposta exemplo:
+
+```json
+{
+  "status": "ok",
+  "produtos": [
+    {
+      "ean": "7891234567890",
+      "codigoProduto": null,
+      "nome": null,
+      "valorVenda": 25.9,
+      "estoque": 8,
+      "ativo": true,
+      "melhorDesconto": 19.9,
+      "descontos": [
+        {
+          "tipo": "melhor",
+          "chave": "alpha7:7891234567890",
+          "produtoCodigo": null,
+          "ean": "7891234567890",
+          "nomeProduto": null,
+          "dataInicio": null,
+          "dataFim": null,
+          "valorReferencia": 19.9
+        }
+      ],
+      "leve": null,
+      "pague": null
+    }
+  ]
+}
+```
+
 ## Regras da consulta
 
 - aceita apenas array de `eans`
 - remove duplicados preservando ordem
-- consulta pelo cache local do cliente
+- Trier consulta pelo cache local do cliente
+- Alpha 7 consulta direto no banco do cliente
 - retorna apenas produtos encontrados
 - retorna apenas descontos ativos naquele momento
 - `melhorDesconto` usa o menor valor promocional ativo encontrado
 
 ## Sincronizacao automatica
 
-Enquanto API e Redis estiverem ativos:
+Enquanto API e Redis estiverem ativos, para clientes Trier:
 
 - incremental: conforme `SYNC_INCREMENTAL_CRON`
 - full: conforme `SYNC_FULL_CRON`
 
-Por cliente, os crons tambem podem ser persistidos no cadastro:
+Por cliente Trier, os crons tambem podem ser persistidos no cadastro:
 
 - `syncIncrementalCron`
 - `syncFullCron`
@@ -331,7 +397,7 @@ Por cliente, os crons tambem podem ser persistidos no cadastro:
 ### Criar cliente
 
 - Metodo: `POST`
-- URL: `http://localhost:3000/api/admin/clientes`
+- URL: `http://localhost:3000/api/admin/clientes/trier`
 
 Headers:
 
@@ -360,7 +426,7 @@ Body:
 ### Sincronizacao inicial
 
 - Metodo: `POST`
-- URL: `http://localhost:3000/api/admin/clientes/1/sincronizar`
+- URL: `http://localhost:3000/api/admin/clientes/trier/1/sincronizar`
 
 Headers:
 
@@ -380,7 +446,7 @@ Body:
 ### Consultar EANs
 
 - Metodo: `POST`
-- URL: `http://localhost:3000/api/consultar-eans`
+- URL: `http://localhost:3000/api/trier/consultar-eans`
 
 Headers:
 
@@ -403,6 +469,7 @@ Body:
 ## Observacoes operacionais
 
 - se o Redis cair, a fila nao processa sincronizacoes
-- se a API cair, os agendamentos nao executam
-- se o token Trier estiver invalido, as sincronizacoes falham com erro de integracao
+- se a API cair, os agendamentos BullMQ nao executam
+- se o token Trier estiver invalido, as sincronizacoes Trier falham com erro de integracao
+- clientes Alpha 7 nao dependem de BullMQ para consultar EANs
 - `CLIENT_API_KEYS_JSON` continua apenas como fallback legado

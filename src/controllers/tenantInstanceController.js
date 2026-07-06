@@ -20,32 +20,45 @@ export async function listTenantInstancesController(_request, response, next) {
   }
 }
 
-export async function createTenantInstanceController(request, response, next) {
+async function createTenantInstanceWithProvider(request, response, next, provider) {
   try {
-    const payload = parseTenantInstancePayload(request.body);
-    await provisionTenantCatalog(payload);
-    const created = await createTenantInstance(payload);
-    await registerTenantSyncSchedule({
-      ...created.instance,
-      trierToken: payload.trierToken,
-      host: payload.host,
-      port: payload.port,
-      database: payload.database,
-      user: payload.user,
-      password: payload.password,
-      ssl: payload.ssl,
+    const payload = parseTenantInstancePayload({
+      ...request.body,
+      provider,
     });
-    const syncJob = payload.autoSync
-      ? await enqueueTenantSync(created.instance.id, payload.autoSyncMode, {
-          requestedBy: 'admin-create',
-        })
-      : null;
+    const isTrier = provider === 'trier';
+
+    if (isTrier) {
+      await provisionTenantCatalog(payload);
+    }
+
+    const created = await createTenantInstance(payload);
+
+    if (isTrier) {
+      await registerTenantSyncSchedule({
+        ...created.instance,
+        trierToken: payload.trierToken,
+        host: payload.host,
+        port: payload.port,
+        database: payload.database,
+        user: payload.user,
+        password: payload.password,
+        ssl: payload.ssl,
+      });
+    }
+
+    const syncJob =
+      isTrier && payload.autoSync
+        ? await enqueueTenantSync(created.instance.id, payload.autoSyncMode, {
+            requestedBy: 'admin-create',
+          })
+        : null;
 
     response.status(201).json({
       status: 'ok',
       instancia: created.instance,
       apiKey: created.apiKey,
-      provisionado: true,
+      provisionado: isTrier,
       sincronizacao:
         syncJob === null
           ? null
@@ -58,6 +71,14 @@ export async function createTenantInstanceController(request, response, next) {
   } catch (error) {
     next(error);
   }
+}
+
+export async function createTrierTenantInstanceController(request, response, next) {
+  return createTenantInstanceWithProvider(request, response, next, 'trier');
+}
+
+export async function createAlpha7TenantInstanceController(request, response, next) {
+  return createTenantInstanceWithProvider(request, response, next, 'alpha7');
 }
 
 export async function testTenantInstanceConnectionController(request, response, next) {
@@ -83,6 +104,12 @@ export async function provisionTenantCatalogController(request, response, next) 
       throw error;
     }
 
+    if (tenant.provider !== 'trier') {
+      const error = new Error('Provisionamento de cache local so esta disponivel para clientes Trier.');
+      error.statusCode = 400;
+      throw error;
+    }
+
     await provisionTenantCatalog(tenant);
 
     response.status(200).json({
@@ -103,6 +130,20 @@ export async function provisionTenantCatalogController(request, response, next) 
 export async function enqueueTenantSyncController(request, response, next) {
   try {
     const tenantId = Number(request.params.id);
+    const tenant = await findTenantInstanceById(tenantId);
+
+    if (!tenant) {
+      const error = new Error('Instancia nao encontrada.');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    if (tenant.provider !== 'trier') {
+      const error = new Error('Sincronizacao BullMQ so esta disponivel para clientes Trier.');
+      error.statusCode = 400;
+      throw error;
+    }
+
     const mode = request.body?.mode === 'full' ? 'full' : request.body?.mode === 'bootstrap' ? 'bootstrap' : 'incremental';
 
     const job = await enqueueTenantSync(tenantId, mode, {

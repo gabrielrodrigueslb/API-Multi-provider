@@ -17,6 +17,7 @@ test('parseTenantInstancePayload accepts valid instance payload', () => {
   });
 
   assert.deepEqual(payload, {
+    provider: 'trier',
     name: 'complexo_loja06',
     trierInstance: 'sgfpod1',
     trierBaseUrl: 'https://api-sgf-gateway.triersistemas.com.br/sgfpod1',
@@ -119,6 +120,38 @@ test('parseTenantInstancePayload accepts auto sync options', () => {
 
   assert.equal(payload.autoSync, true);
   assert.equal(payload.autoSyncMode, 'full');
+});
+
+test('parseTenantInstancePayload accepts alpha7 without trierToken', () => {
+  const payload = parseTenantInstancePayload({
+    provider: 'alpha7',
+    name: 'cliente_alpha',
+    host: 'localhost',
+    database: 'cliente_alpha',
+    user: 'postgres',
+    password: 'postgres',
+    autoSync: true,
+  });
+
+  assert.equal(payload.provider, 'alpha7');
+  assert.equal(payload.trierToken, '');
+  assert.equal(payload.autoSync, false);
+  assert.equal(payload.autoSyncMode, 'bootstrap');
+});
+
+test('parseTenantInstancePayload rejects invalid provider', () => {
+  assert.throws(
+    () =>
+      parseTenantInstancePayload({
+        provider: 'outro',
+        name: 'cliente_sync',
+        host: 'localhost',
+        database: 'cliente_sync',
+        user: 'postgres',
+        password: 'postgres',
+      }),
+    /provider/,
+  );
 });
 
 test('parseTenantInstancePayload rejects invalid autoSyncMode', () => {

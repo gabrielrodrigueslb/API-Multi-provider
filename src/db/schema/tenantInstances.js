@@ -5,6 +5,7 @@ export const instancesSchema = pgSchema(env.controlDbSchema);
 
 export const tenantInstances = instancesSchema.table('tenant_instances', {
   id: bigserial('id', { mode: 'number' }).primaryKey(),
+  provider: text('provider').notNull().default('trier'),
   name: text('name').notNull(),
   apiKeyHash: text('api_key_hash').notNull().unique(),
   trierInstance: text('trier_instance').notNull(),

@@ -75,7 +75,7 @@ export async function enqueueTenantSync(tenantId, mode = 'incremental', meta = {
 async function scheduleTenantRepeatableJobs(tenant) {
   const queue = getSyncQueue();
 
-  if (!queue) {
+  if (!queue || tenant.provider !== 'trier') {
     return;
   }
 

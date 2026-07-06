@@ -80,12 +80,28 @@ function parseAutoSyncMode(value) {
   throw error;
 }
 
+function parseProvider(value) {
+  const normalized = optionalString(value, 20) || 'trier';
+
+  if (['trier', 'alpha7'].includes(normalized)) {
+    return normalized;
+  }
+
+  const error = new Error('O campo "provider" deve ser "trier" ou "alpha7".');
+  error.statusCode = 400;
+  throw error;
+}
+
 export function parseTenantInstancePayload(body = {}) {
+  const provider = parseProvider(body.provider);
+
   return {
+    provider,
     name: requiredString(body.name, 'name', 120),
     trierInstance: optionalString(body.trierInstance ?? body.instance, 120) || 'sgfpod1',
     trierBaseUrl: optionalString(body.trierBaseUrl, 255) || env.trierDefaultBaseUrl,
-    trierToken: requiredString(body.trierToken, 'trierToken', 500),
+    trierToken:
+      provider === 'trier' ? requiredString(body.trierToken, 'trierToken', 500) : optionalString(body.trierToken, 500) || '',
     host: requiredString(body.host, 'host', 200),
     port: parsePositiveInteger(body.port, 'port', 5432),
     database: requiredString(body.database, 'database', 120),
@@ -95,7 +111,7 @@ export function parseTenantInstancePayload(body = {}) {
     cacheSchema: optionalString(body.cacheSchema, 120) || 'trier_cache',
     syncIncrementalCron: optionalString(body.syncIncrementalCron, 120) || '0 */2 * * *',
     syncFullCron: optionalString(body.syncFullCron, 120) || '0 3 * * *',
-    autoSync: parseBoolean(body.autoSync, false),
+    autoSync: provider === 'trier' ? parseBoolean(body.autoSync, false) : false,
     autoSyncMode: parseAutoSyncMode(body.autoSyncMode),
     apiKey: optionalString(body.apiKey, 200),
     status: optionalString(body.status, 20) || 'active',

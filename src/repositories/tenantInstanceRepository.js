@@ -18,6 +18,7 @@ function mapRowToClientConfig(row) {
 
   return {
     id: row.id,
+    provider: row.provider,
     name: row.name,
     trierInstance: row.trierInstance,
     trierBaseUrl: row.trierBaseUrl,
@@ -40,6 +41,7 @@ function mapRowToClientConfig(row) {
 function mapPublicInstance(row) {
   return {
     id: row.id,
+    provider: row.provider,
     name: row.name,
     trierInstance: row.trierInstance,
     trierBaseUrl: row.trierBaseUrl,
@@ -132,6 +134,7 @@ export async function createTenantInstance(payload = {}) {
   const [row] = await controlDb
     .insert(tenantInstances)
     .values({
+      provider: payload.provider || 'trier',
       name: payload.name,
       apiKeyHash,
       trierInstance: payload.trierInstance,
@@ -176,6 +179,7 @@ export async function testTenantInstanceConnection(id) {
   return {
     instance: {
       id: row.id,
+      provider: row.provider,
       name: row.name,
       trierInstance: row.trierInstance,
       trierBaseUrl: row.trierBaseUrl,
