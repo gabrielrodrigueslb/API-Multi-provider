@@ -22,6 +22,7 @@ O consumo continua unificado por `x-api-key`.
 - Node.js 20+
 - PostgreSQL
 - Redis
+- Docker Desktop ou outro runtime Docker compativel, caso va subir o Redis por container
 
 ## Configuracao
 
@@ -60,6 +61,42 @@ TENANT_DB_ADMIN_SSL=false
 ```
 
 ## Executar
+
+### Subir o Redis com Docker
+
+Se voce ainda nao tiver Redis local, pode subir com Docker:
+
+```bash
+docker run --name redis-local -p 6379:6379 redis
+```
+
+Se quiser manter em background:
+
+```bash
+docker run -d --name redis-local -p 6379:6379 redis
+```
+
+Se o container ja existir e estiver parado:
+
+```bash
+docker start redis-local
+```
+
+Teste rapido da porta:
+
+```bash
+docker ps
+```
+
+O `.env` deste projeto ja aponta para:
+
+```env
+REDIS_URL=redis://127.0.0.1:6379
+```
+
+Sem Redis ativo, a API sobe, mas BullMQ nao processa sincronizacoes Trier.
+
+### Subir a API
 
 ```bash
 npm install
