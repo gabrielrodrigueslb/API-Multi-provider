@@ -128,6 +128,24 @@ export async function registerTenantSyncSchedule(tenant) {
   await scheduleTenantRepeatableJobs(tenant);
 }
 
+export async function unregisterTenantSyncSchedule(tenant) {
+  const queue = getSyncQueue();
+  if (!queue || tenant.provider !== 'trier') {
+    return;
+  }
+
+  await queue.removeRepeatable(
+    'scheduled:incremental',
+    { pattern: tenant.syncIncrementalCron || env.syncIncrementalCron },
+    `tenant:${tenant.id}:incremental`,
+  );
+  await queue.removeRepeatable(
+    'scheduled:full',
+    { pattern: tenant.syncFullCron || env.syncFullCron },
+    `tenant:${tenant.id}:full`,
+  );
+}
+
 export async function registerTenantSyncSchedules() {
   if (!isQueueEnabled()) {
     logger.warn('REDIS_URL nao configurado; sincronizacao BullMQ desabilitada');
