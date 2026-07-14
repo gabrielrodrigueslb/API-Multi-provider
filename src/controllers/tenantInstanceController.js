@@ -8,6 +8,7 @@ import { provisionTenantCatalog, removeTenantCatalog } from '../services/tenantC
 import { findTenantInstanceById } from '../repositories/tenantInstanceRepository.js';
 import {
   enqueueTenantSync,
+  cancelTenantSyncJobs,
   registerTenantSyncSchedule,
   unregisterTenantSyncSchedule,
 } from '../workers/syncQueue.js';
@@ -98,6 +99,7 @@ export async function deleteTenantInstanceController(request, response, next) {
 
     if (tenant.provider === 'trier') {
       await unregisterTenantSyncSchedule(tenant);
+      await cancelTenantSyncJobs(tenant.id);
       await removeTenantCatalog(tenant);
     }
 

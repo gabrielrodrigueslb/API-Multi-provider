@@ -146,6 +146,18 @@ export async function unregisterTenantSyncSchedule(tenant) {
   );
 }
 
+export async function cancelTenantSyncJobs(tenantId) {
+  const queue = getSyncQueue();
+  if (!queue) return;
+
+  const jobs = await queue.getJobs(['waiting', 'delayed', 'prioritized', 'paused']);
+  await Promise.all(
+    jobs
+      .filter((job) => Number(job.data?.tenantId) === Number(tenantId))
+      .map((job) => job.remove()),
+  );
+}
+
 export async function registerTenantSyncSchedules() {
   if (!isQueueEnabled()) {
     logger.warn('REDIS_URL nao configurado; sincronizacao BullMQ desabilitada');
@@ -175,7 +187,15 @@ export function startSyncWorker() {
     QUEUE_NAME,
     async (job) => {
       const { tenantId, mode } = job.data;
-      return runTenantSync(tenantId, mode);
+      try {
+        return await runTenantSync(tenantId, mode);
+      } catch (error) {
+        if (error?.statusCode === 404) {
+          logger.info({ jobId: job.id, tenantId }, 'Job BullMQ ignorado: instancia removida');
+          return { skipped: true };
+        }
+        throw error;
+      }
     },
     {
       connection: getRedisConnection(),
