@@ -1,11 +1,17 @@
 import {
   createTenantInstance,
+  deleteTenantInstance,
   listTenantInstances,
   testTenantInstanceConnection,
 } from '../repositories/tenantInstanceRepository.js';
-import { provisionTenantCatalog } from '../services/tenantCatalogStore.js';
+import { provisionTenantCatalog, removeTenantCatalog } from '../services/tenantCatalogStore.js';
 import { findTenantInstanceById } from '../repositories/tenantInstanceRepository.js';
-import { enqueueTenantSync, registerTenantSyncSchedule } from '../workers/syncQueue.js';
+import {
+  enqueueTenantSync,
+  cancelTenantSyncJobs,
+  registerTenantSyncSchedule,
+  unregisterTenantSyncSchedule,
+} from '../workers/syncQueue.js';
 import { parseTenantInstancePayload } from '../utils/tenantInstancePayload.js';
 
 export async function listTenantInstancesController(_request, response, next) {
@@ -79,6 +85,29 @@ export async function createTrierTenantInstanceController(request, response, nex
 
 export async function createAlpha7TenantInstanceController(request, response, next) {
   return createTenantInstanceWithProvider(request, response, next, 'alpha7');
+}
+
+export async function deleteTenantInstanceController(request, response, next) {
+  try {
+    const tenant = await findTenantInstanceById(Number(request.params.id));
+
+    if (!tenant) {
+      const error = new Error('Instancia nao encontrada.');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    if (tenant.provider === 'trier') {
+      await unregisterTenantSyncSchedule(tenant);
+      await cancelTenantSyncJobs(tenant.id);
+      await removeTenantCatalog(tenant);
+    }
+
+    await deleteTenantInstance(tenant.id);
+    response.status(204).end();
+  } catch (error) {
+    next(error);
+  }
 }
 
 export async function testTenantInstanceConnectionController(request, response, next) {

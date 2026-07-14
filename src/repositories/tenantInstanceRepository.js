@@ -164,6 +164,20 @@ export async function findTenantInstanceById(id) {
   return mapRowToClientConfig(rows[0] || null);
 }
 
+export async function deleteTenantInstance(id) {
+  const [row] = await controlDb
+    .delete(tenantInstances)
+    .where(eq(tenantInstances.id, Number(id)))
+    .returning();
+
+  if (!row) {
+    return null;
+  }
+
+  apiKeyCache.clear();
+  return mapRowToClientConfig(row);
+}
+
 export async function testTenantInstanceConnection(id) {
   const row = await findTenantInstanceById(id);
 

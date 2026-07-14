@@ -198,6 +198,38 @@ export async function provisionTenantCatalog(tenant) {
   await ensureTenantCatalogSchema(tenant);
 }
 
+export async function removeTenantCatalog(tenant) {
+  const schema = assertSafeIdentifier(tenant.cacheSchema || 'trier_cache', 'cacheSchema');
+  const generatedDatabase = /^cliente_[a-z0-9_]+_cache$/.test(tenant.database);
+
+  if (env.tenantDbProvisionEnabled && generatedDatabase) {
+    const adminPool = new Pool({
+      host: tenant.host,
+      port: tenant.port,
+      database: env.tenantDbAdminDatabase,
+      user: env.tenantDbAdminUser,
+      password: env.tenantDbAdminPassword,
+      ssl: env.tenantDbAdminSsl ? { rejectUnauthorized: false } : false,
+    });
+
+    try {
+      await adminPool.query(
+        'select pg_terminate_backend(pid) from pg_stat_activity where datname = $1 and pid <> pg_backend_pid()',
+        [tenant.database],
+      );
+      const safeDatabase = `"${String(tenant.database).replace(/"/g, '""')}"`;
+      await adminPool.query(`drop database if exists ${safeDatabase}`);
+    } finally {
+      await adminPool.end();
+    }
+
+    return;
+  }
+
+  const pool = getClientDatabasePool(tenant);
+  await pool.query(`drop schema if exists ${schema} cascade`);
+}
+
 export async function upsertProducts(tenant, products = [], syncBatchId) {
   if (products.length === 0) {
     return;
