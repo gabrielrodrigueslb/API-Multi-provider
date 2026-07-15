@@ -146,6 +146,27 @@ export async function unregisterTenantSyncSchedule(tenant) {
   );
 }
 
+// Removes any repeatable sync job left over for a tenant that isn't (or is
+// no longer) Trier. Older code registered these unconditionally for every
+// provider before the trier-only guard existed, so restarts on the fixed
+// code alone don't stop jobs BullMQ already has scheduled in Redis -
+// removeRepeatable also needs the exact original cron pattern to match the
+// key, which we can't assume we still know. Enumerating actual repeatable
+// jobs and removing by key sidesteps that.
+async function purgeStaleRepeatableJobsForTenant(tenantId) {
+  const queue = getSyncQueue();
+  if (!queue) return;
+
+  const jobIds = [`tenant:${tenantId}:incremental`, `tenant:${tenantId}:full`];
+  const repeatableJobs = await queue.getRepeatableJobs();
+
+  await Promise.all(
+    repeatableJobs
+      .filter((job) => jobIds.includes(job.id))
+      .map((job) => queue.removeRepeatableByKey(job.key)),
+  );
+}
+
 export async function cancelTenantSyncJobs(tenantId) {
   const queue = getSyncQueue();
   if (!queue) return;
@@ -165,12 +186,23 @@ export async function registerTenantSyncSchedules() {
   }
 
   const tenants = await listActiveTenantInstances();
+  let purgedCount = 0;
 
   for (const tenant of tenants) {
-    await scheduleTenantRepeatableJobs(tenant);
+    if (tenant.provider === 'trier') {
+      await scheduleTenantRepeatableJobs(tenant);
+      continue;
+    }
+
+    await purgeStaleRepeatableJobsForTenant(tenant.id);
+    await cancelTenantSyncJobs(tenant.id);
+    purgedCount += 1;
   }
 
-  logger.info({ tenantCount: tenants.length }, 'Agendamentos BullMQ registrados');
+  logger.info(
+    { tenantCount: tenants.length, purgedCount },
+    'Agendamentos BullMQ registrados (nao-trier verificados/limpos)',
+  );
 }
 
 export function startSyncWorker() {
