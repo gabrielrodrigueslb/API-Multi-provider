@@ -70,6 +70,8 @@ export const env = {
   ),
   trierRemoveStockRestriction: parseBoolean(process.env.TRIER_REMOVE_STOCK_RESTRICTION, true),
   tenantDbProvisionEnabled: parseBoolean(process.env.TENANT_DB_PROVISION_ENABLED, false),
+  tenantDbAdminHost: parseString(process.env.TENANT_DB_ADMIN_HOST, ''),
+  tenantDbAdminPort: parseNumber(process.env.TENANT_DB_ADMIN_PORT, 5432),
   tenantDbAdminDatabase: parseString(process.env.TENANT_DB_ADMIN_DATABASE, 'postgres'),
   tenantDbAdminUser: parseString(process.env.TENANT_DB_ADMIN_USER, ''),
   tenantDbAdminPassword: parseString(process.env.TENANT_DB_ADMIN_PASSWORD, ''),

@@ -77,15 +77,22 @@ export async function bootstrapControlDatabase() {
        set trier_instance = coalesce(nullif(trier_instance, ''), name),
            trier_base_url = coalesce(nullif(trier_base_url, ''), '${env.trierDefaultBaseUrl}'),
            trier_token = coalesce(trier_token, '')
-     where trier_instance is null
-        or trier_instance = ''
-        or trier_base_url is null
-        or trier_token is null
+     where provider = 'trier'
+       and (
+         trier_instance is null
+         or trier_instance = ''
+         or trier_base_url is null
+         or trier_token is null
+       )
+  `);
+  await controlPool.query(`
+    update ${schemaName}.tenant_instances
+       set trier_token = coalesce(trier_token, '')
+     where provider <> 'trier'
+       and trier_token is null
   `);
   await controlPool.query(`
     alter table ${schemaName}.tenant_instances
-    alter column trier_instance set not null,
-    alter column trier_base_url set not null,
     alter column trier_token set not null
   `);
   await controlPool.query(`
@@ -95,6 +102,41 @@ export async function bootstrapControlDatabase() {
   await controlPool.query(`
     create index if not exists tenant_instances_provider_idx
       on ${schemaName}.tenant_instances (provider)
+  `);
+
+  // trier_instance/trier_base_url/cache_schema/sync_*_cron only apply to
+  // provider "trier" (cache-DB sync scheduling). Older code filled them with
+  // defaults for every provider regardless, leaving junk on alpha7/vetor
+  // rows. Relax the columns to nullable and null out the junk on existing
+  // non-trier rows; parseTenantInstancePayload no longer sets them for
+  // anything but trier going forward.
+  await controlPool.query(`
+    alter table ${schemaName}.tenant_instances
+    alter column trier_instance drop not null,
+    alter column trier_base_url drop not null,
+    alter column cache_schema drop not null,
+    alter column sync_incremental_cron drop not null,
+    alter column sync_full_cron drop not null
+  `);
+  await controlPool.query(`
+    update ${schemaName}.tenant_instances
+       set trier_instance = null,
+           trier_base_url = null,
+           cache_schema = null,
+           sync_incremental_cron = null,
+           sync_full_cron = null
+     where provider <> 'trier'
+       and (
+         trier_instance is not null
+         or trier_base_url is not null
+         or cache_schema is not null
+         or sync_incremental_cron is not null
+         or sync_full_cron is not null
+       )
+  `);
+  await controlPool.query(`
+    alter table ${schemaName}.tenant_instances
+    add column if not exists vetor_unidade text
   `);
 }
 
