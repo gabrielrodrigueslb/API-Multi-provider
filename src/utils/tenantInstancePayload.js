@@ -92,16 +92,33 @@ function parseProvider(value) {
   throw error;
 }
 
+// Trier tenants all share the same cache Postgres - the server's own admin
+// connection info, not something every caller needs to know and pass in.
+// Alpha7 is different: host/user/password there is the CLIENT'S OWN real
+// database, so it still has to come from the request body.
+function resolveTrierCacheDbConnection() {
+  if (!env.tenantDbAdminHost || !env.tenantDbAdminUser || !env.tenantDbAdminPassword) {
+    const error = new Error(
+      'TENANT_DB_ADMIN_HOST/TENANT_DB_ADMIN_USER/TENANT_DB_ADMIN_PASSWORD nao configurados no servidor.',
+    );
+    error.statusCode = 503;
+    throw error;
+  }
+
+  return {
+    host: env.tenantDbAdminHost,
+    port: env.tenantDbAdminPort,
+    user: env.tenantDbAdminUser,
+    password: env.tenantDbAdminPassword,
+    ssl: env.tenantDbAdminSsl,
+  };
+}
+
 export function parseTenantInstancePayload(body = {}) {
   const provider = parseProvider(body.provider);
-  // Only trier/alpha7 connect to a real Postgres (shared cache DB for trier,
-  // the client's own DB for alpha7). Vetor is a pure REST API integration
-  // with no database of its own, but db_host/db_port/db_name/db_user/
-  // db_password are NOT NULL columns on tenant_instances (shared table
-  // across all providers), so it still needs harmless placeholder values.
-  const usesDatabase = provider === 'trier' || provider === 'alpha7';
-
   const isTrier = provider === 'trier';
+  const isAlpha7 = provider === 'alpha7';
+  const trierCacheDb = isTrier ? resolveTrierCacheDbConnection() : null;
 
   return {
     provider,
@@ -112,12 +129,12 @@ export function parseTenantInstancePayload(body = {}) {
     trierInstance: isTrier ? optionalString(body.trierInstance ?? body.instance, 120) || 'sgfpod1' : null,
     trierBaseUrl: isTrier ? optionalString(body.trierBaseUrl, 255) || env.trierDefaultBaseUrl : null,
     trierToken: provider === 'trier' ? requiredString(body.trierToken, 'trierToken', 500) : provider === 'vetor' ? requiredString(body.vetorToken, 'vetorToken', 500) : '',
-    host: usesDatabase ? requiredString(body.host, 'host', 200) : optionalString(body.host, 200) || 'n/a',
-    port: usesDatabase ? parsePositiveInteger(body.port, 'port', 5432) : 0,
-    database: usesDatabase ? requiredString(body.database, 'database', 120) : optionalString(body.database, 120) || 'n/a',
-    user: usesDatabase ? requiredString(body.user, 'user', 120) : optionalString(body.user, 120) || 'n/a',
-    password: usesDatabase ? requiredString(body.password, 'password', 200) : optionalString(body.password, 200) || 'n/a',
-    ssl: parseBoolean(body.ssl, false),
+    host: isTrier ? trierCacheDb.host : isAlpha7 ? requiredString(body.host, 'host', 200) : optionalString(body.host, 200) || 'n/a',
+    port: isTrier ? trierCacheDb.port : isAlpha7 ? parsePositiveInteger(body.port, 'port', 5432) : 0,
+    database: isTrier || isAlpha7 ? requiredString(body.database, 'database', 120) : optionalString(body.database, 120) || 'n/a',
+    user: isTrier ? trierCacheDb.user : isAlpha7 ? requiredString(body.user, 'user', 120) : optionalString(body.user, 120) || 'n/a',
+    password: isTrier ? trierCacheDb.password : isAlpha7 ? requiredString(body.password, 'password', 200) : optionalString(body.password, 200) || 'n/a',
+    ssl: isTrier ? trierCacheDb.ssl : parseBoolean(body.ssl, false),
     cacheSchema: isTrier ? optionalString(body.cacheSchema, 120) || 'trier_cache' : null,
     syncIncrementalCron: isTrier ? optionalString(body.syncIncrementalCron, 120) || '0 */2 * * *' : null,
     syncFullCron: isTrier ? optionalString(body.syncFullCron, 120) || '0 3 * * *' : null,
