@@ -94,6 +94,12 @@ function parseProvider(value) {
 
 export function parseTenantInstancePayload(body = {}) {
   const provider = parseProvider(body.provider);
+  // Only trier/alpha7 connect to a real Postgres (shared cache DB for trier,
+  // the client's own DB for alpha7). Vetor is a pure REST API integration
+  // with no database of its own, but db_host/db_port/db_name/db_user/
+  // db_password are NOT NULL columns on tenant_instances (shared table
+  // across all providers), so it still needs harmless placeholder values.
+  const usesDatabase = provider === 'trier' || provider === 'alpha7';
 
   return {
     provider,
@@ -101,11 +107,11 @@ export function parseTenantInstancePayload(body = {}) {
     trierInstance: optionalString(body.trierInstance ?? body.instance, 120) || 'sgfpod1',
     trierBaseUrl: optionalString(body.trierBaseUrl, 255) || env.trierDefaultBaseUrl,
     trierToken: provider === 'trier' ? requiredString(body.trierToken, 'trierToken', 500) : provider === 'vetor' ? requiredString(body.vetorToken, 'vetorToken', 500) : '',
-    host: requiredString(body.host, 'host', 200),
-    port: parsePositiveInteger(body.port, 'port', 5432),
-    database: requiredString(body.database, 'database', 120),
-    user: requiredString(body.user, 'user', 120),
-    password: requiredString(body.password, 'password', 200),
+    host: usesDatabase ? requiredString(body.host, 'host', 200) : optionalString(body.host, 200) || 'n/a',
+    port: usesDatabase ? parsePositiveInteger(body.port, 'port', 5432) : 0,
+    database: usesDatabase ? requiredString(body.database, 'database', 120) : optionalString(body.database, 120) || 'n/a',
+    user: usesDatabase ? requiredString(body.user, 'user', 120) : optionalString(body.user, 120) || 'n/a',
+    password: usesDatabase ? requiredString(body.password, 'password', 200) : optionalString(body.password, 200) || 'n/a',
     ssl: parseBoolean(body.ssl, false),
     cacheSchema: optionalString(body.cacheSchema, 120) || 'trier_cache',
     syncIncrementalCron: optionalString(body.syncIncrementalCron, 120) || '0 */2 * * *',
