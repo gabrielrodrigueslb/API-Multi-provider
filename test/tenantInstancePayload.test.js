@@ -22,7 +22,7 @@ test('parseTenantInstancePayload accepts valid instance payload', () => {
     name: 'complexo_loja06',
     trierInstance: 'sgfpod1',
     trierBaseUrl: 'https://api-sgf-gateway.triersistemas.com.br/sgfpod1',
-    trierToken: 'token-trier',
+    providerToken: 'token-trier',
     host: 'cache-db.internal',
     port: 5433,
     database: 'complexofarma_loja06',
@@ -157,7 +157,7 @@ test('parseTenantInstancePayload accepts alpha7 without trierToken', () => {
   });
 
   assert.equal(payload.provider, 'alpha7');
-  assert.equal(payload.trierToken, '');
+  assert.equal(payload.providerToken, '');
   assert.equal(payload.autoSync, false);
   assert.equal(payload.autoSyncMode, 'bootstrap');
   // alpha7 is the client's own real database - unlike trier, it must come

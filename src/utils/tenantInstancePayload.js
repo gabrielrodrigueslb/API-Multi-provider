@@ -128,7 +128,7 @@ export function parseTenantInstancePayload(body = {}) {
     // instead of silently filling them with trier defaults.
     trierInstance: isTrier ? optionalString(body.trierInstance ?? body.instance, 120) || 'sgfpod1' : null,
     trierBaseUrl: isTrier ? optionalString(body.trierBaseUrl, 255) || env.trierDefaultBaseUrl : null,
-    trierToken: provider === 'trier' ? requiredString(body.trierToken, 'trierToken', 500) : provider === 'vetor' ? requiredString(body.vetorToken, 'vetorToken', 500) : '',
+    providerToken: provider === 'trier' ? requiredString(body.trierToken, 'trierToken', 500) : provider === 'vetor' ? requiredString(body.vetorToken, 'vetorToken', 500) : '',
     host: isTrier ? trierCacheDb.host : isAlpha7 ? requiredString(body.host, 'host', 200) : optionalString(body.host, 200) || 'n/a',
     port: isTrier ? trierCacheDb.port : isAlpha7 ? parsePositiveInteger(body.port, 'port', 5432) : 0,
     database: isTrier || isAlpha7 ? requiredString(body.database, 'database', 120) : optionalString(body.database, 120) || 'n/a',

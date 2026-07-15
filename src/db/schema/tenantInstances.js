@@ -12,7 +12,9 @@ export const tenantInstances = instancesSchema.table('tenant_instances', {
   // for provider "trier" (cache-DB sync scheduling); null for alpha7/vetor.
   trierInstance: text('trier_instance'),
   trierBaseUrl: text('trier_base_url'),
-  trierToken: text('trier_token').notNull(),
+  // Holds the provider auth token - Trier's, or Vetor's (schema is shared
+  // across providers, not Trier-specific despite the historical name).
+  providerToken: text('provider_token').notNull(),
   dbHost: text('db_host').notNull(),
   dbPort: integer('db_port').notNull(),
   dbName: text('db_name').notNull(),
