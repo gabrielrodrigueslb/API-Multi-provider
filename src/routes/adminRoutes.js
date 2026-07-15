@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   createAlpha7TenantInstanceController,
   createTrierTenantInstanceController,
+  createVetorTenantInstanceController,
   deleteTenantInstanceController,
   enqueueTenantSyncController,
   listTenantInstancesController,
@@ -20,6 +21,7 @@ adminRoutes.post('/instancias/:id/testar-conexao', testTenantInstanceConnectionC
 adminRoutes.post('/instancias/trier/:id/sincronizar', enqueueTenantSyncController);
 adminRoutes.post('/clientes/trier', createTrierTenantInstanceController);
 adminRoutes.post('/clientes/alpha7', createAlpha7TenantInstanceController);
+adminRoutes.post('/clientes/vetor', createVetorTenantInstanceController);
 adminRoutes.delete('/clientes/:id', deleteTenantInstanceController);
 adminRoutes.post('/clientes/:id/testar-conexao', testTenantInstanceConnectionController);
 adminRoutes.post('/clientes/trier/:id/sincronizar', enqueueTenantSyncController);

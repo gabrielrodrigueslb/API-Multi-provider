@@ -83,11 +83,11 @@ function parseAutoSyncMode(value) {
 function parseProvider(value) {
   const normalized = optionalString(value, 20) || 'trier';
 
-  if (['trier', 'alpha7'].includes(normalized)) {
+  if (['trier', 'alpha7', 'vetor'].includes(normalized)) {
     return normalized;
   }
 
-  const error = new Error('O campo "provider" deve ser "trier" ou "alpha7".');
+  const error = new Error('O campo "provider" deve ser "trier", "alpha7" ou "vetor".');
   error.statusCode = 400;
   throw error;
 }
@@ -100,8 +100,7 @@ export function parseTenantInstancePayload(body = {}) {
     name: requiredString(body.name, 'name', 120),
     trierInstance: optionalString(body.trierInstance ?? body.instance, 120) || 'sgfpod1',
     trierBaseUrl: optionalString(body.trierBaseUrl, 255) || env.trierDefaultBaseUrl,
-    trierToken:
-      provider === 'trier' ? requiredString(body.trierToken, 'trierToken', 500) : optionalString(body.trierToken, 500) || '',
+    trierToken: provider === 'trier' ? requiredString(body.trierToken, 'trierToken', 500) : provider === 'vetor' ? requiredString(body.vetorToken, 'vetorToken', 500) : '',
     host: requiredString(body.host, 'host', 200),
     port: parsePositiveInteger(body.port, 'port', 5432),
     database: requiredString(body.database, 'database', 120),

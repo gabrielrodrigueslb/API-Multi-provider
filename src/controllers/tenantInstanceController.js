@@ -87,6 +87,10 @@ export async function createAlpha7TenantInstanceController(request, response, ne
   return createTenantInstanceWithProvider(request, response, next, 'alpha7');
 }
 
+export async function createVetorTenantInstanceController(request, response, next) {
+  return createTenantInstanceWithProvider(request, response, next, 'vetor');
+}
+
 export async function deleteTenantInstanceController(request, response, next) {
   try {
     const tenant = await findTenantInstanceById(Number(request.params.id));
