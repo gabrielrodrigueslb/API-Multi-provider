@@ -31,6 +31,7 @@ test('parseTenantInstancePayload accepts valid instance payload', () => {
     cacheSchema: 'trier_cache',
     syncIncrementalCron: '0 */2 * * *',
     syncFullCron: '0 3 * * *',
+    vetorUnidade: null,
     autoSync: false,
     autoSyncMode: 'bootstrap',
     apiKey: 'minha-chave',
@@ -137,6 +138,51 @@ test('parseTenantInstancePayload accepts alpha7 without trierToken', () => {
   assert.equal(payload.trierToken, '');
   assert.equal(payload.autoSync, false);
   assert.equal(payload.autoSyncMode, 'bootstrap');
+});
+
+test('parseTenantInstancePayload nulls trier-only fields for alpha7 and vetor', () => {
+  const alpha7 = parseTenantInstancePayload({
+    provider: 'alpha7',
+    name: 'cliente_alpha',
+    host: 'localhost',
+    database: 'cliente_alpha',
+    user: 'postgres',
+    password: 'postgres',
+  });
+
+  assert.equal(alpha7.trierInstance, null);
+  assert.equal(alpha7.trierBaseUrl, null);
+  assert.equal(alpha7.cacheSchema, null);
+  assert.equal(alpha7.syncIncrementalCron, null);
+  assert.equal(alpha7.syncFullCron, null);
+
+  const vetor = parseTenantInstancePayload({
+    provider: 'vetor',
+    name: 'cliente_vetor',
+    vetorToken: 'token-vetor',
+    unidade: '2',
+  });
+
+  assert.equal(vetor.trierInstance, null);
+  assert.equal(vetor.trierBaseUrl, null);
+  assert.equal(vetor.cacheSchema, null);
+  assert.equal(vetor.syncIncrementalCron, null);
+  assert.equal(vetor.syncFullCron, null);
+  assert.equal(vetor.vetorUnidade, '2');
+});
+
+test('parseTenantInstancePayload requires unidade for vetor', () => {
+  assert.throws(
+    () =>
+      parseTenantInstancePayload({
+        provider: 'vetor',
+        name: 'cliente_vetor',
+        vetorToken: 'token-vetor',
+      }),
+    {
+      message: 'O campo "unidade" e obrigatorio.',
+    },
+  );
 });
 
 test('parseTenantInstancePayload rejects invalid provider', () => {

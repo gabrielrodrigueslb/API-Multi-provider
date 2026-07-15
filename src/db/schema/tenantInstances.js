@@ -8,8 +8,10 @@ export const tenantInstances = instancesSchema.table('tenant_instances', {
   provider: text('provider').notNull().default('trier'),
   name: text('name').notNull(),
   apiKeyHash: text('api_key_hash').notNull().unique(),
-  trierInstance: text('trier_instance').notNull(),
-  trierBaseUrl: text('trier_base_url').notNull(),
+  // trier_instance/trier_base_url/cache_schema/sync_*_cron only mean something
+  // for provider "trier" (cache-DB sync scheduling); null for alpha7/vetor.
+  trierInstance: text('trier_instance'),
+  trierBaseUrl: text('trier_base_url'),
   trierToken: text('trier_token').notNull(),
   dbHost: text('db_host').notNull(),
   dbPort: integer('db_port').notNull(),
@@ -17,9 +19,11 @@ export const tenantInstances = instancesSchema.table('tenant_instances', {
   dbUser: text('db_user').notNull(),
   dbPassword: text('db_password').notNull(),
   dbSsl: boolean('db_ssl').notNull().default(false),
-  cacheSchema: text('cache_schema').notNull().default('trier_cache'),
-  syncIncrementalCron: text('sync_incremental_cron').notNull().default('0 */2 * * *'),
-  syncFullCron: text('sync_full_cron').notNull().default('0 3 * * *'),
+  cacheSchema: text('cache_schema'),
+  syncIncrementalCron: text('sync_incremental_cron'),
+  syncFullCron: text('sync_full_cron'),
+  // Vetor filial/unidade code (cdFilial), used to scope live product queries.
+  vetorUnidade: text('vetor_unidade'),
   lastIncrementalSyncAt: timestamp('last_incremental_sync_at', { withTimezone: true }),
   lastFullSyncAt: timestamp('last_full_sync_at', { withTimezone: true }),
   status: text('status').notNull().default('active'),

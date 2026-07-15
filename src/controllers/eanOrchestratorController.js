@@ -33,3 +33,7 @@ export async function consultTrierEansController(request, response, next) {
 export async function consultAlpha7EansController(request, response, next) {
   return consultEansByProvider(request, response, next, 'alpha7');
 }
+
+export async function consultVetorEansController(request, response, next) {
+  return consultEansByProvider(request, response, next, 'vetor');
+}

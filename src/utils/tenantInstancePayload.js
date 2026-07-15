@@ -101,11 +101,16 @@ export function parseTenantInstancePayload(body = {}) {
   // across all providers), so it still needs harmless placeholder values.
   const usesDatabase = provider === 'trier' || provider === 'alpha7';
 
+  const isTrier = provider === 'trier';
+
   return {
     provider,
     name: requiredString(body.name, 'name', 120),
-    trierInstance: optionalString(body.trierInstance ?? body.instance, 120) || 'sgfpod1',
-    trierBaseUrl: optionalString(body.trierBaseUrl, 255) || env.trierDefaultBaseUrl,
+    // Sync-scheduling fields only mean anything for trier (the only provider
+    // with a local cache DB kept in sync on a cron); null for alpha7/vetor
+    // instead of silently filling them with trier defaults.
+    trierInstance: isTrier ? optionalString(body.trierInstance ?? body.instance, 120) || 'sgfpod1' : null,
+    trierBaseUrl: isTrier ? optionalString(body.trierBaseUrl, 255) || env.trierDefaultBaseUrl : null,
     trierToken: provider === 'trier' ? requiredString(body.trierToken, 'trierToken', 500) : provider === 'vetor' ? requiredString(body.vetorToken, 'vetorToken', 500) : '',
     host: usesDatabase ? requiredString(body.host, 'host', 200) : optionalString(body.host, 200) || 'n/a',
     port: usesDatabase ? parsePositiveInteger(body.port, 'port', 5432) : 0,
@@ -113,9 +118,10 @@ export function parseTenantInstancePayload(body = {}) {
     user: usesDatabase ? requiredString(body.user, 'user', 120) : optionalString(body.user, 120) || 'n/a',
     password: usesDatabase ? requiredString(body.password, 'password', 200) : optionalString(body.password, 200) || 'n/a',
     ssl: parseBoolean(body.ssl, false),
-    cacheSchema: optionalString(body.cacheSchema, 120) || 'trier_cache',
-    syncIncrementalCron: optionalString(body.syncIncrementalCron, 120) || '0 */2 * * *',
-    syncFullCron: optionalString(body.syncFullCron, 120) || '0 3 * * *',
+    cacheSchema: isTrier ? optionalString(body.cacheSchema, 120) || 'trier_cache' : null,
+    syncIncrementalCron: isTrier ? optionalString(body.syncIncrementalCron, 120) || '0 */2 * * *' : null,
+    syncFullCron: isTrier ? optionalString(body.syncFullCron, 120) || '0 3 * * *' : null,
+    vetorUnidade: provider === 'vetor' ? requiredString(body.unidade, 'unidade', 20) : null,
     autoSync: provider === 'trier' ? parseBoolean(body.autoSync, false) : false,
     autoSyncMode: parseAutoSyncMode(body.autoSyncMode),
     apiKey: optionalString(body.apiKey, 200),
