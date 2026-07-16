@@ -6,6 +6,7 @@ import {
   deleteTenantInstanceController,
   enqueueTenantSyncController,
   listTenantInstancesController,
+  regenerateTenantApiKeyController,
   testTenantInstanceConnectionController,
 } from '../controllers/tenantInstanceController.js';
 import { authenticateAdminApiKey } from '../middlewares/adminApiKeyAuth.js';
@@ -23,5 +24,6 @@ adminRoutes.post('/clientes/trier', createTrierTenantInstanceController);
 adminRoutes.post('/clientes/alpha7', createAlpha7TenantInstanceController);
 adminRoutes.post('/clientes/vetor', createVetorTenantInstanceController);
 adminRoutes.delete('/clientes/:id', deleteTenantInstanceController);
+adminRoutes.post('/clientes/:id/regenerar-api-key', regenerateTenantApiKeyController);
 adminRoutes.post('/clientes/:id/testar-conexao', testTenantInstanceConnectionController);
 adminRoutes.post('/clientes/trier/:id/sincronizar', enqueueTenantSyncController);
