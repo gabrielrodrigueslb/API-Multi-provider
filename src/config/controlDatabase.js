@@ -38,7 +38,7 @@ export async function bootstrapControlDatabase() {
       api_key_hash text not null unique,
       trier_instance text not null default '',
       trier_base_url text not null default '',
-      trier_token text not null default '',
+      provider_token text not null default '',
       db_host text not null,
       db_port integer not null,
       db_name text not null,
@@ -60,12 +60,30 @@ export async function bootstrapControlDatabase() {
     drop column if exists unidade_negocio_id,
     drop column if exists estoque_minimo
   `);
+  // trier_token was renamed to provider_token (it stores the Vetor API
+  // token too, not just Trier's). Rename in place before any "add column if
+  // not exists" runs, so existing installs keep their data instead of
+  // ending up with a second, empty column.
+  await controlPool.query(`
+    do $$
+    begin
+      if exists (
+        select 1 from information_schema.columns
+        where table_schema = '${schemaName}' and table_name = 'tenant_instances' and column_name = 'trier_token'
+      ) and not exists (
+        select 1 from information_schema.columns
+        where table_schema = '${schemaName}' and table_name = 'tenant_instances' and column_name = 'provider_token'
+      ) then
+        alter table ${schemaName}.tenant_instances rename column trier_token to provider_token;
+      end if;
+    end $$;
+  `);
   await controlPool.query(`
     alter table ${schemaName}.tenant_instances
     add column if not exists provider text not null default 'trier',
     add column if not exists trier_instance text,
     add column if not exists trier_base_url text,
-    add column if not exists trier_token text,
+    add column if not exists provider_token text,
     add column if not exists cache_schema text not null default 'trier_cache',
     add column if not exists sync_incremental_cron text not null default '0 */2 * * *',
     add column if not exists sync_full_cron text not null default '0 3 * * *',
@@ -76,24 +94,24 @@ export async function bootstrapControlDatabase() {
     update ${schemaName}.tenant_instances
        set trier_instance = coalesce(nullif(trier_instance, ''), name),
            trier_base_url = coalesce(nullif(trier_base_url, ''), '${env.trierDefaultBaseUrl}'),
-           trier_token = coalesce(trier_token, '')
+           provider_token = coalesce(provider_token, '')
      where provider = 'trier'
        and (
          trier_instance is null
          or trier_instance = ''
          or trier_base_url is null
-         or trier_token is null
+         or provider_token is null
        )
   `);
   await controlPool.query(`
     update ${schemaName}.tenant_instances
-       set trier_token = coalesce(trier_token, '')
+       set provider_token = coalesce(provider_token, '')
      where provider <> 'trier'
-       and trier_token is null
+       and provider_token is null
   `);
   await controlPool.query(`
     alter table ${schemaName}.tenant_instances
-    alter column trier_token set not null
+    alter column provider_token set not null
   `);
   await controlPool.query(`
     create index if not exists tenant_instances_status_idx

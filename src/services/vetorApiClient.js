@@ -84,7 +84,7 @@ async function fetchChunk(baseUrl, authorization, unidade, eans, timeoutMs) {
  * fetchClientProductsByEan uses for Alpha7.
  */
 export async function fetchVetorProductsByEan(clientConfig, eans = []) {
-  const authorization = buildAuthorization(clientConfig.trierToken);
+  const authorization = buildAuthorization(clientConfig.providerToken);
   const baseUrl = clientConfig.vetorBaseUrl || DEFAULT_BASE_URL;
   const timeoutMs = clientConfig.vetorTimeoutMs || DEFAULT_TIMEOUT_MS;
 

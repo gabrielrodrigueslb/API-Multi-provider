@@ -58,7 +58,7 @@ export function resolveClientDatabaseConfigByApiKey(apiKey) {
     name: registered.client_name || registered.clientName || registered.name || null,
     trierInstance: registered.trier_instance || registered.trierInstance || registered.instance || null,
     trierBaseUrl: registered.trier_base_url || registered.trierBaseUrl || env.trierDefaultBaseUrl,
-    trierToken: registered.trier_token || registered.trierToken || null,
+    providerToken: registered.provider_token || registered.providerToken || registered.trier_token || registered.trierToken || null,
     host: registered.host,
     port: Number(registered.port || 5432),
     database: registered.database,

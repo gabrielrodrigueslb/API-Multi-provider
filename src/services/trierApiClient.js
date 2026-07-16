@@ -17,7 +17,7 @@ function normalizeBaseUrl(value) {
 function buildHeaders(tenant) {
   return {
     Accept: 'application/json',
-    Authorization: `Bearer ${tenant.trierToken}`,
+    Authorization: `Bearer ${tenant.providerToken}`,
   };
 }
 

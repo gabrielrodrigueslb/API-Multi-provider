@@ -43,7 +43,7 @@ async function createTenantInstanceWithProvider(request, response, next, provide
     if (isTrier) {
       await registerTenantSyncSchedule({
         ...created.instance,
-        trierToken: payload.trierToken,
+        providerToken: payload.providerToken,
         host: payload.host,
         port: payload.port,
         database: payload.database,
