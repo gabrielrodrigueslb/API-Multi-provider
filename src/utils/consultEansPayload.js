@@ -34,7 +34,7 @@ function optionalPositiveInteger(value, fieldName) {
   return parsed;
 }
 
-export function parseConsultEansPayload(body = {}) {
+export function parseConsultEansPayload(body = {}, options = {}) {
   if (body.client_key || body.client_database) {
     const error = new Error('Este endpoint nao aceita "client_key" nem "client_database".');
     error.statusCode = 400;
@@ -77,7 +77,7 @@ export function parseConsultEansPayload(body = {}) {
     return normalized;
   });
 
-  return {
+  const parsed = {
     eans,
     cadernoOfertaId: optionalInteger(body.cadernoOfertaId),
     unidadeNegocioId: optionalPositiveInteger(
@@ -85,4 +85,12 @@ export function parseConsultEansPayload(body = {}) {
       'unidadeNegocioId',
     ),
   };
+
+  if (options.requireUnidadeNegocioId && parsed.unidadeNegocioId === null) {
+    const error = new Error('O campo "unidadeNegocioId" e obrigatorio para consultas Alpha7.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return parsed;
 }

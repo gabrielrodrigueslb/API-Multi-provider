@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { getClientDatabase } from '../config/clientDatabase.js';
+import { logger } from '../config/logger.js';
 
 export function normalizeEan(value) {
   return String(value ?? '')
@@ -74,6 +75,21 @@ export async function fetchClientProductsByEan(clientConfig, payload = {}) {
   const normalizedEanExpression = buildNormalizedEanExpression();
   const eanList = buildNormalizedEanInClause(normalizedEans);
   const db = getClientDatabase(clientConfig);
+
+  logger.debug(
+    {
+      client: clientConfig.name ?? clientConfig.database,
+      host: clientConfig.host,
+      port: clientConfig.port,
+      database: clientConfig.database,
+      requestedUnitId: payload.unidadeNegocioId ?? null,
+      resolvedUnitId,
+      fallbackUnitApplied: payload.unidadeNegocioId == null,
+      eans: cleanEans,
+      normalizedEans,
+    },
+    'Executando consulta Alpha7 por EAN',
+  );
 
   const query = sql`
     select
@@ -178,7 +194,19 @@ export async function fetchClientProductsByEan(clientConfig, payload = {}) {
   `;
 
   const result = await db.execute(query);
-  return buildClientProductMap(result.rows ?? result);
+  const rows = result.rows ?? result;
+
+  logger.debug(
+    {
+      client: clientConfig.name ?? clientConfig.database,
+      resolvedUnitId,
+      rowCount: rows.length,
+      returnedEans: rows.map((row) => row.ean),
+    },
+    'Consulta Alpha7 concluida no banco do cliente',
+  );
+
+  return buildClientProductMap(rows);
 }
 
 export const _internals = {
