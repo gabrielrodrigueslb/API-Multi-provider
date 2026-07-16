@@ -167,6 +167,31 @@ export async function findTenantInstanceById(id) {
   return mapRowToClientConfig(rows[0] || null);
 }
 
+export async function regenerateTenantApiKey(id) {
+  const apiKey = generateApiKey();
+  const apiKeyHash = hashApiKey(apiKey);
+
+  const [row] = await controlDb
+    .update(tenantInstances)
+    .set({ apiKeyHash, updatedAt: new Date() })
+    .where(eq(tenantInstances.id, Number(id)))
+    .returning();
+
+  if (!row) {
+    return null;
+  }
+
+  // The old key must stop working immediately - drop any cached lookup for
+  // it (we don't know the old plaintext key here to target just that entry,
+  // so clear the whole cache; it's small and repopulates on next request).
+  apiKeyCache.clear();
+
+  return {
+    apiKey,
+    instance: mapPublicInstance(row),
+  };
+}
+
 export async function deleteTenantInstance(id) {
   const [row] = await controlDb
     .delete(tenantInstances)

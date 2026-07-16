@@ -2,6 +2,7 @@ import {
   createTenantInstance,
   deleteTenantInstance,
   listTenantInstances,
+  regenerateTenantApiKey,
   testTenantInstanceConnection,
 } from '../repositories/tenantInstanceRepository.js';
 import { provisionTenantCatalog, removeTenantCatalog } from '../services/tenantCatalogStore.js';
@@ -109,6 +110,28 @@ export async function deleteTenantInstanceController(request, response, next) {
 
     await deleteTenantInstance(tenant.id);
     response.status(204).end();
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function regenerateTenantApiKeyController(request, response, next) {
+  try {
+    const tenant = await findTenantInstanceById(Number(request.params.id));
+
+    if (!tenant) {
+      const error = new Error('Instancia nao encontrada.');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const result = await regenerateTenantApiKey(tenant.id);
+
+    response.status(200).json({
+      status: 'ok',
+      instancia: result.instance,
+      apiKey: result.apiKey,
+    });
   } catch (error) {
     next(error);
   }
