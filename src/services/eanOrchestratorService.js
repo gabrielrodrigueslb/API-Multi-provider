@@ -139,6 +139,11 @@ export async function consultProductsByEan(clientConfig, payload = {}) {
   logger.debug(
     {
       client: clientConfig.name ?? clientConfig.database,
+      provider: clientConfig.provider ?? 'trier',
+      host: clientConfig.host,
+      port: clientConfig.port,
+      database: clientConfig.database,
+      unidadeNegocioId: payload.unidadeNegocioId ?? null,
       eanCount: orderedEans.length,
     },
     'Iniciando consulta de EANs',

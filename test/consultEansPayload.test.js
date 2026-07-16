@@ -53,3 +53,23 @@ test('parseConsultEansPayload rejects invalid unidadeNegocioId', () => {
   assert.throws(() => parseConsultEansPayload({ eans: ['123'], unidadeNegocioId: 'abc' }), /unidadeNegocioId/);
   assert.throws(() => parseConsultEansPayload({ eans: ['123'], unidadeNegocioId: 0 }), /unidadeNegocioId/);
 });
+
+test('parseConsultEansPayload requires unidadeNegocioId when requested by provider rules', () => {
+  assert.throws(
+    () => parseConsultEansPayload({ eans: ['123'] }, { requireUnidadeNegocioId: true }),
+    /unidadeNegocioId/,
+  );
+});
+
+test('parseConsultEansPayload accepts unidade_negocio_id alias when required', () => {
+  const parsed = parseConsultEansPayload(
+    { eans: ['123'], unidade_negocio_id: 134644 },
+    { requireUnidadeNegocioId: true },
+  );
+
+  assert.deepEqual(parsed, {
+    eans: ['123'],
+    cadernoOfertaId: null,
+    unidadeNegocioId: 134644,
+  });
+});

@@ -374,6 +374,22 @@ Resposta:
 
 Consulta produtos do cliente Alpha 7 por EAN.
 
+Body exemplo:
+
+```json
+{
+  "eans": [
+    "7891058002916"
+  ],
+  "unidadeNegocioId": 134644
+}
+```
+
+Observacoes:
+
+- `unidadeNegocioId` e obrigatorio para consultas Alpha 7
+- `unidade_negocio_id` tambem e aceito como alias
+
 Resposta exemplo:
 
 ```json
