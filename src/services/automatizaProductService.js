@@ -49,7 +49,9 @@ function buildAutomatizaProductMap(rows) {
   return map;
 }
 
-export async function fetchAutomatizaProductsByEan(clientConfig, eans = []) {
+export async function fetchAutomatizaProductsByEan(clientConfig, payload = {}) {
+  const requestedShopId = Number(payload.shopId);
+  const eans = payload.eans || [];
   const cleanEans = Array.from(new Set((eans || []).filter(Boolean).map((ean) => String(ean).trim())));
   const normalizedEans = Array.from(new Set(cleanEans.map((ean) => normalizeEan(ean)).filter(Boolean)));
 
@@ -57,8 +59,8 @@ export async function fetchAutomatizaProductsByEan(clientConfig, eans = []) {
     return new Map();
   }
 
-  if (!Number.isInteger(Number(clientConfig.automatizaShopId)) || Number(clientConfig.automatizaShopId) <= 0) {
-    const error = new Error('A instancia Automatiza nao possui shopId configurado.');
+  if (!Number.isInteger(requestedShopId) || requestedShopId <= 0) {
+    const error = new Error('A consulta Automatiza requer um shopId valido.');
     error.statusCode = 400;
     throw error;
   }
@@ -97,13 +99,13 @@ export async function fetchAutomatizaProductsByEan(clientConfig, eans = []) {
       host: clientConfig.host,
       port: clientConfig.port,
       database: clientConfig.database,
-      shopId: Number(clientConfig.automatizaShopId),
+      shopId: requestedShopId,
       eans: cleanEans,
     },
     'Executando consulta Automatiza por EAN',
   );
 
-  const [rows] = await pool.query(sql, [Number(clientConfig.automatizaShopId), ...normalizedEans]);
+  const [rows] = await pool.query(sql, [requestedShopId, ...normalizedEans]);
   return buildAutomatizaProductMap(rows);
 }
 

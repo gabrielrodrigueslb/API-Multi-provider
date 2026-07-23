@@ -218,21 +218,17 @@ test('parseTenantInstancePayload accepts automatiza with shopId', () => {
   assert.equal(payload.autoSync, false);
 });
 
-test('parseTenantInstancePayload requires shopId for automatiza', () => {
-  assert.throws(
-    () =>
-      parseTenantInstancePayload({
-        provider: 'automatiza',
-        name: 'cliente_automatiza',
-        host: '189.89.222.5',
-        database: 'automatiza',
-        user: 'unicocontato',
-        password: 'unicocontato',
-      }),
-    {
-      message: 'O campo "shopId" deve ser um inteiro positivo.',
-    },
-  );
+test('parseTenantInstancePayload accepts automatiza without shopId', () => {
+  const payload = parseTenantInstancePayload({
+    provider: 'automatiza',
+    name: 'cliente_automatiza',
+    host: '189.89.222.5',
+    database: 'automatiza',
+    user: 'unicocontato',
+    password: 'unicocontato',
+  });
+
+  assert.equal(payload.automatizaShopId, null);
 });
 
 test('parseTenantInstancePayload requires unidade for vetor', () => {

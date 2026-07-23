@@ -41,6 +41,7 @@ test('parseConsultEansPayload accepts string eans and preserves order', () => {
     eans: ['00123', '456'],
     cadernoOfertaId: 5840993,
     unidadeNegocioId: 74579,
+    shopId: null,
   });
 });
 
@@ -71,5 +72,24 @@ test('parseConsultEansPayload accepts unidade_negocio_id alias when required', (
     eans: ['123'],
     cadernoOfertaId: null,
     unidadeNegocioId: 134644,
+    shopId: null,
   });
+});
+
+test('parseConsultEansPayload accepts shopId and shop_id aliases', () => {
+  const parsed = parseConsultEansPayload({ eans: ['123'], shop_id: 22 });
+
+  assert.deepEqual(parsed, {
+    eans: ['123'],
+    cadernoOfertaId: null,
+    unidadeNegocioId: null,
+    shopId: 22,
+  });
+});
+
+test('parseConsultEansPayload requires shopId when requested by provider rules', () => {
+  assert.throws(
+    () => parseConsultEansPayload({ eans: ['123'] }, { requireShopId: true }),
+    /shopId/,
+  );
 });
