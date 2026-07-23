@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { and, desc, eq } from 'drizzle-orm';
 import { controlDb } from '../config/controlDatabase.js';
+import { getAutomatizaDatabasePool } from '../config/automatizaDatabase.js';
 import { getClientDatabasePool } from '../config/clientDatabase.js';
 import { tenantInstances } from '../db/schema/tenantInstances.js';
 
@@ -33,6 +34,7 @@ function mapRowToClientConfig(row) {
     syncIncrementalCron: row.syncIncrementalCron,
     syncFullCron: row.syncFullCron,
     vetorUnidade: row.vetorUnidade,
+    automatizaShopId: row.automatizaShopId,
     lastIncrementalSyncAt: row.lastIncrementalSyncAt,
     lastFullSyncAt: row.lastFullSyncAt,
     status: row.status,
@@ -55,6 +57,7 @@ function mapPublicInstance(row) {
     syncIncrementalCron: row.syncIncrementalCron,
     syncFullCron: row.syncFullCron,
     vetorUnidade: row.vetorUnidade,
+    automatizaShopId: row.automatizaShopId,
     lastIncrementalSyncAt: row.lastIncrementalSyncAt,
     lastFullSyncAt: row.lastFullSyncAt,
     status: row.status,
@@ -152,6 +155,7 @@ export async function createTenantInstance(payload = {}) {
       syncIncrementalCron: payload.syncIncrementalCron,
       syncFullCron: payload.syncFullCron,
       vetorUnidade: payload.vetorUnidade,
+      automatizaShopId: payload.automatizaShopId,
       status: payload.status || 'active',
     })
     .returning();
@@ -215,8 +219,10 @@ export async function testTenantInstanceConnection(id) {
     throw error;
   }
 
-  const pool = getClientDatabasePool(row);
-  const result = await pool.query('select current_database() as db, current_user as usr, now() as now');
+  const result =
+    row.provider === 'automatiza'
+      ? await testAutomatizaConnection(row)
+      : await testPostgresConnection(row);
 
   return {
     instance: {
@@ -239,6 +245,17 @@ export async function testTenantInstanceConnection(id) {
     },
     connection: result.rows[0],
   };
+}
+
+async function testPostgresConnection(row) {
+  const pool = getClientDatabasePool(row);
+  return pool.query('select current_database() as db, current_user as usr, now() as now');
+}
+
+async function testAutomatizaConnection(row) {
+  const pool = getAutomatizaDatabasePool(row);
+  const [rows] = await pool.query('select database() as db, current_user() as usr, now() as now');
+  return { rows };
 }
 
 export async function updateTenantSyncTimestamps(id, timestamps = {}) {

@@ -48,6 +48,7 @@ export async function bootstrapControlDatabase() {
       cache_schema text not null default 'trier_cache',
       sync_incremental_cron text not null default '0 */2 * * *',
       sync_full_cron text not null default '0 3 * * *',
+      automatiza_shop_id integer null,
       last_incremental_sync_at timestamptz null,
       last_full_sync_at timestamptz null,
       status text not null default 'active',
@@ -155,6 +156,10 @@ export async function bootstrapControlDatabase() {
   await controlPool.query(`
     alter table ${schemaName}.tenant_instances
     add column if not exists vetor_unidade text
+  `);
+  await controlPool.query(`
+    alter table ${schemaName}.tenant_instances
+    add column if not exists automatiza_shop_id integer
   `);
 }
 

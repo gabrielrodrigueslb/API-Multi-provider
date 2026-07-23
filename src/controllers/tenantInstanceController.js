@@ -92,6 +92,10 @@ export async function createVetorTenantInstanceController(request, response, nex
   return createTenantInstanceWithProvider(request, response, next, 'vetor');
 }
 
+export async function createAutomatizaTenantInstanceController(request, response, next) {
+  return createTenantInstanceWithProvider(request, response, next, 'automatiza');
+}
+
 export async function deleteTenantInstanceController(request, response, next) {
   try {
     const tenant = await findTenantInstanceById(Number(request.params.id));

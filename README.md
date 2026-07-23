@@ -1,9 +1,11 @@
 # API Multi-provider
 
-API Node.js para operar multiplos clientes com dois providers no mesmo codigo:
+API Node.js para operar multiplos clientes com varios providers no mesmo codigo:
 
 - `trier`: sincroniza produtos e descontos para um cache PostgreSQL por cliente
 - `alpha7`: consulta diretamente o banco do cliente
+- `vetor`: consulta diretamente a API Vetor por EAN
+- `automatiza`: consulta diretamente o MySQL do cliente por EAN
 
 O consumo continua unificado por `x-api-key`.
 
@@ -14,6 +16,7 @@ O consumo continua unificado por `x-api-key`.
 - para Trier, provisiona o banco/schema do cache no momento do cadastro
 - para Trier, sincroniza produtos e descontos com BullMQ + Redis
 - para Alpha 7, consulta direto no banco do cliente
+- para Automatiza, consulta direto no MySQL do cliente filtrando por `shop_id`
 - consulta produtos por EAN usando a `apiKey` do cliente
 - retorna somente descontos/promocoes ativas no momento da consulta
 
@@ -113,7 +116,7 @@ npm.cmd run dev
 ## Fluxo atual
 
 1. A API sobe conectando no banco master.
-2. Voce cria um cliente em `POST /api/admin/clientes/trier` ou `POST /api/admin/clientes/alpha7`.
+2. Voce cria um cliente em `POST /api/admin/clientes/trier`, `POST /api/admin/clientes/alpha7`, `POST /api/admin/clientes/vetor` ou `POST /api/admin/clientes/automatiza`.
 3. Nesse momento a API:
    - valida os dados
    - grava o cliente no banco master
@@ -258,6 +261,87 @@ Exemplo criando o cliente e ja disparando a sincronizacao inicial:
 ```
 
 ### `POST /api/admin/clientes/alpha7`
+
+### `POST /api/admin/clientes/automatiza`
+
+Cria um cliente Automatiza apontando para o MySQL e para a loja/filial (`shopId`) que deve responder as consultas.
+
+Body:
+
+```json
+{
+  "name": "cliente_automatiza",
+  "host": "189.89.222.5",
+  "port": 59001,
+  "database": "automatiza",
+  "user": "unicocontato",
+  "password": "unicocontato",
+  "ssl": false,
+  "shopId": 22
+}
+```
+
+Campos obrigatorios:
+
+- `name`
+- `host`
+- `database`
+- `user`
+- `password`
+- `shopId`
+
+Defaults:
+
+- `port = 3306`
+- `ssl = false`
+
+Observacao:
+
+- o mesmo produto existe em varias lojas no Automatiza, entao o `shopId` e obrigatorio para evitar respostas duplicadas por EAN
+
+### `POST /api/produtos/automatiza/consultar-eans`
+
+Consulta produtos do cliente Automatiza por EAN.
+
+Body:
+
+```json
+{
+  "eans": ["7891317158118"]
+}
+```
+
+Resposta esperada:
+
+```json
+{
+  "status": "ok",
+  "produtos": [
+    {
+      "ean": "7891317158118",
+      "codigoProduto": 2,
+      "nome": "MOVIMENT C 12G C/30 SACHES",
+      "descricao": "Moviment C ...",
+      "valorVenda": 99.9,
+      "estoque": 0,
+      "ativo": false,
+      "melhorDesconto": 99.9,
+      "descontos": [],
+      "leve": null,
+      "pague": null,
+      "categoria": "M COTE FACIL",
+      "grupo": "ETICOS",
+      "subgrupo": "OTC LIBERADO 25",
+      "marca": "EUROFARMA OTC",
+      "imagem": null,
+      "ncm": "2106903000",
+      "laboratorio": "EUROFARMA OTC",
+      "generico": false,
+      "retencaoReceita": "NAO"
+    }
+  ]
+}
+```
 
 Cria um cliente Alpha 7.
 

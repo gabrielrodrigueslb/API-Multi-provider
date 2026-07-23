@@ -54,3 +54,7 @@ export async function consultAlpha7EansController(request, response, next) {
 export async function consultVetorEansController(request, response, next) {
   return consultEansByProvider(request, response, next, 'vetor');
 }
+
+export async function consultAutomatizaEansController(request, response, next) {
+  return consultEansByProvider(request, response, next, 'automatiza');
+}

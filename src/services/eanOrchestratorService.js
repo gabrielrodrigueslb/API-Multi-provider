@@ -1,6 +1,7 @@
 import { normalizeEan } from './tenantCatalogStore.js';
 import { consultTenantCatalogByEans } from './tenantCatalogQueryService.js';
 import { fetchClientProductsByEan } from './clientProductService.js';
+import { fetchAutomatizaProductsByEan } from './automatizaProductService.js';
 import { fetchVetorProductsByEan } from './vetorApiClient.js';
 import { logger } from '../config/logger.js';
 
@@ -133,6 +134,68 @@ function mapAlpha7Products(orderedEans, productsByEan) {
     .filter(Boolean);
 }
 
+function buildAutomatizaDiscounts(product) {
+  if (!Number.isFinite(product.price_promo) || !Number.isFinite(product.price)) {
+    return [];
+  }
+
+  if (product.price_promo >= product.price) {
+    return [];
+  }
+
+  return [
+    {
+      tipo: 'melhor',
+      chave: `automatiza:${normalizeEan(product.ean) || product.ean}:${product.shop_id}`,
+      produtoCodigo: product.product_id,
+      ean: product.ean,
+      nomeProduto: product.title,
+      dataInicio: null,
+      dataFim: null,
+      valorReferencia: product.price_promo,
+    },
+  ];
+}
+
+function mapAutomatizaProducts(orderedEans, productsByEan) {
+  return orderedEans
+    .map((item) => {
+      const product = productsByEan.get(item.normalized);
+
+      if (!product) {
+        return null;
+      }
+
+      const descontos = buildAutomatizaDiscounts(product);
+      const valorVenda = Number.isFinite(product.price) ? product.price : null;
+      const melhorDesconto = Number.isFinite(product.melhor_preco) ? product.melhor_preco : valorVenda;
+
+      return {
+        ean: product.ean,
+        codigoProduto: product.product_id,
+        nome: product.title,
+        descricao: product.description,
+        valorVenda,
+        estoque: product.quantity,
+        ativo: product.quantity > 0,
+        melhorDesconto,
+        descontos,
+        leve: null,
+        pague: null,
+        categoria: product.category,
+        grupo: product.group,
+        subgrupo: product.subgroup,
+        marca: product.brand,
+        imagem: product.image_link,
+        ncm: product.ncm,
+        laboratorio: product.laboratorio,
+        generico: product.drug_is_generic,
+        retencaoReceita: product.retencaoreceita,
+      };
+    })
+    .filter(Boolean);
+}
+
 export async function consultProductsByEan(clientConfig, payload = {}) {
   const orderedEans = dedupeEansPreservingOrder(payload.eans || []);
 
@@ -160,6 +223,15 @@ export async function consultProductsByEan(clientConfig, payload = {}) {
 
     result = {
       produtos: mapAlpha7Products(orderedEans, productsByEan),
+    };
+  } else if (clientConfig.provider === 'automatiza') {
+    const productsByEan = await fetchAutomatizaProductsByEan(
+      clientConfig,
+      orderedEans.map((item) => item.original),
+    );
+
+    result = {
+      produtos: mapAutomatizaProducts(orderedEans, productsByEan),
     };
   } else if (clientConfig.provider === 'vetor') {
     const productsByEan = await fetchVetorProductsByEan(
@@ -193,8 +265,10 @@ export async function consultProductsByEan(clientConfig, payload = {}) {
 
 export const _internals = {
   buildAlpha7Discounts,
+  buildAutomatizaDiscounts,
   buildVetorDiscounts,
   dedupeEansPreservingOrder,
   mapAlpha7Products,
+  mapAutomatizaProducts,
   mapVetorProducts,
 };
