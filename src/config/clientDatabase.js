@@ -55,6 +55,7 @@ export function resolveClientDatabaseConfigByApiKey(apiKey) {
   }
 
   return {
+    provider: registered.provider || 'trier',
     name: registered.client_name || registered.clientName || registered.name || null,
     trierInstance: registered.trier_instance || registered.trierInstance || registered.instance || null,
     trierBaseUrl: registered.trier_base_url || registered.trierBaseUrl || env.trierDefaultBaseUrl,
@@ -66,6 +67,8 @@ export function resolveClientDatabaseConfigByApiKey(apiKey) {
     password: registered.password,
     ssl: normalizeSsl(registered.ssl, false),
     cacheSchema: registered.cache_schema || registered.cacheSchema || 'trier_cache',
+    vetorUnidade: registered.vetor_unidade || registered.vetorUnidade || null,
+    automatizaShopId: Number(registered.automatiza_shop_id || registered.automatizaShopId || registered.shop_id || registered.shopId || 0) || null,
   };
 }
 

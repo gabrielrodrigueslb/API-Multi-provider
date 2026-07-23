@@ -17,25 +17,25 @@ test('resolveClientDatabaseConfigByApiKey returns client config from registry', 
   const original = env.clientApiKeyRegistry;
   env.clientApiKeyRegistry = {
     chave123: {
+      provider: 'automatiza',
       client_name: 'cliente_a',
-      trier_instance: 'sgfpod1',
-      trier_base_url: 'http://localhost:4647/sgfpod1',
-      trier_token: 'token-trier',
       host: 'db.local',
-      port: 5432,
+      port: 3306,
       database: 'cliente_a',
-      user: 'postgres',
+      user: 'root',
       password: 'secret',
       ssl: false,
+      shop_id: 22,
     },
   };
 
   try {
     const resolved = resolveClientDatabaseConfigByApiKey('chave123');
     assert.equal(resolved?.name, 'cliente_a');
+    assert.equal(resolved?.provider, 'automatiza');
     assert.equal(resolved?.host, 'db.local');
     assert.equal(resolved?.database, 'cliente_a');
-    assert.equal(resolved?.cacheSchema, 'trier_cache');
+    assert.equal(resolved?.automatizaShopId, 22);
   } finally {
     env.clientApiKeyRegistry = original;
   }
@@ -46,16 +46,15 @@ test('authenticateClientApiKey rejects invalid key and accepts valid registry ke
   const originalLookupTenantByApiKey = _internals.lookupTenantByApiKey;
   env.clientApiKeyRegistry = {
     chave123: {
+      provider: 'automatiza',
       client_name: 'cliente_a',
-      trier_instance: 'sgfpod1',
-      trier_base_url: 'http://localhost:4647/sgfpod1',
-      trier_token: 'token-trier',
       host: 'db.local',
-      port: 5432,
+      port: 3306,
       database: 'cliente_a',
-      user: 'postgres',
+      user: 'root',
       password: 'secret',
       ssl: false,
+      shop_id: 22,
     },
   };
   _internals.lookupTenantByApiKey = async () => null;

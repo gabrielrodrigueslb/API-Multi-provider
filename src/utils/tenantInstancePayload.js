@@ -52,6 +52,18 @@ function parsePositiveInteger(value, fieldName, fallback = null) {
   return parsed;
 }
 
+function requiredPositiveInteger(value, fieldName) {
+  const parsed = parsePositiveInteger(value, fieldName, null);
+
+  if (parsed === null) {
+    const error = new Error(`O campo "${fieldName}" deve ser um inteiro positivo.`);
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return parsed;
+}
+
 function parseBoolean(value, fallback = false) {
   if (value === undefined || value === null || value === '') {
     return fallback;
@@ -83,11 +95,11 @@ function parseAutoSyncMode(value) {
 function parseProvider(value) {
   const normalized = optionalString(value, 20) || 'trier';
 
-  if (['trier', 'alpha7', 'vetor'].includes(normalized)) {
+  if (['trier', 'alpha7', 'vetor', 'automatiza'].includes(normalized)) {
     return normalized;
   }
 
-  const error = new Error('O campo "provider" deve ser "trier", "alpha7" ou "vetor".');
+  const error = new Error('O campo "provider" deve ser "trier", "alpha7", "vetor" ou "automatiza".');
   error.statusCode = 400;
   throw error;
 }
@@ -118,6 +130,7 @@ export function parseTenantInstancePayload(body = {}) {
   const provider = parseProvider(body.provider);
   const isTrier = provider === 'trier';
   const isAlpha7 = provider === 'alpha7';
+  const isAutomatiza = provider === 'automatiza';
   const trierCacheDb = isTrier ? resolveTrierCacheDbConnection() : null;
 
   return {
@@ -129,16 +142,17 @@ export function parseTenantInstancePayload(body = {}) {
     trierInstance: isTrier ? optionalString(body.trierInstance ?? body.instance, 120) || 'sgfpod1' : null,
     trierBaseUrl: isTrier ? optionalString(body.trierBaseUrl, 255) || env.trierDefaultBaseUrl : null,
     providerToken: provider === 'trier' ? requiredString(body.trierToken, 'trierToken', 500) : provider === 'vetor' ? requiredString(body.vetorToken, 'vetorToken', 500) : '',
-    host: isTrier ? trierCacheDb.host : isAlpha7 ? requiredString(body.host, 'host', 200) : optionalString(body.host, 200) || 'n/a',
-    port: isTrier ? trierCacheDb.port : isAlpha7 ? parsePositiveInteger(body.port, 'port', 5432) : 0,
-    database: isTrier || isAlpha7 ? requiredString(body.database, 'database', 120) : optionalString(body.database, 120) || 'n/a',
-    user: isTrier ? trierCacheDb.user : isAlpha7 ? requiredString(body.user, 'user', 120) : optionalString(body.user, 120) || 'n/a',
-    password: isTrier ? trierCacheDb.password : isAlpha7 ? requiredString(body.password, 'password', 200) : optionalString(body.password, 200) || 'n/a',
+    host: isTrier ? trierCacheDb.host : isAlpha7 || isAutomatiza ? requiredString(body.host, 'host', 200) : optionalString(body.host, 200) || 'n/a',
+    port: isTrier ? trierCacheDb.port : isAlpha7 ? parsePositiveInteger(body.port, 'port', 5432) : isAutomatiza ? parsePositiveInteger(body.port, 'port', 3306) : 0,
+    database: isTrier || isAlpha7 || isAutomatiza ? requiredString(body.database, 'database', 120) : optionalString(body.database, 120) || 'n/a',
+    user: isTrier ? trierCacheDb.user : isAlpha7 || isAutomatiza ? requiredString(body.user, 'user', 120) : optionalString(body.user, 120) || 'n/a',
+    password: isTrier ? trierCacheDb.password : isAlpha7 || isAutomatiza ? requiredString(body.password, 'password', 200) : optionalString(body.password, 200) || 'n/a',
     ssl: isTrier ? trierCacheDb.ssl : parseBoolean(body.ssl, false),
     cacheSchema: isTrier ? optionalString(body.cacheSchema, 120) || 'trier_cache' : null,
     syncIncrementalCron: isTrier ? optionalString(body.syncIncrementalCron, 120) || '0 */2 * * *' : null,
     syncFullCron: isTrier ? optionalString(body.syncFullCron, 120) || '0 3 * * *' : null,
     vetorUnidade: provider === 'vetor' ? requiredString(body.unidade, 'unidade', 20) : null,
+    automatizaShopId: provider === 'automatiza' ? requiredPositiveInteger(body.shopId ?? body.shop_id, 'shopId') : null,
     autoSync: provider === 'trier' ? parseBoolean(body.autoSync, false) : false,
     autoSyncMode: parseAutoSyncMode(body.autoSyncMode),
     apiKey: optionalString(body.apiKey, 200),

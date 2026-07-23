@@ -33,6 +33,7 @@ test('parseTenantInstancePayload accepts valid instance payload', () => {
     syncIncrementalCron: '0 */2 * * *',
     syncFullCron: '0 3 * * *',
     vetorUnidade: null,
+    automatizaShopId: null,
     autoSync: false,
     autoSyncMode: 'bootstrap',
     apiKey: 'minha-chave',
@@ -195,6 +196,43 @@ test('parseTenantInstancePayload nulls trier-only fields for alpha7 and vetor', 
   assert.equal(vetor.syncIncrementalCron, null);
   assert.equal(vetor.syncFullCron, null);
   assert.equal(vetor.vetorUnidade, '2');
+  assert.equal(vetor.automatizaShopId, null);
+});
+
+test('parseTenantInstancePayload accepts automatiza with shopId', () => {
+  const payload = parseTenantInstancePayload({
+    provider: 'automatiza',
+    name: 'cliente_automatiza',
+    host: '189.89.222.5',
+    port: 59001,
+    database: 'automatiza',
+    user: 'unicocontato',
+    password: 'unicocontato',
+    shopId: 22,
+  });
+
+  assert.equal(payload.provider, 'automatiza');
+  assert.equal(payload.port, 59001);
+  assert.equal(payload.providerToken, '');
+  assert.equal(payload.automatizaShopId, 22);
+  assert.equal(payload.autoSync, false);
+});
+
+test('parseTenantInstancePayload requires shopId for automatiza', () => {
+  assert.throws(
+    () =>
+      parseTenantInstancePayload({
+        provider: 'automatiza',
+        name: 'cliente_automatiza',
+        host: '189.89.222.5',
+        database: 'automatiza',
+        user: 'unicocontato',
+        password: 'unicocontato',
+      }),
+    {
+      message: 'O campo "shopId" deve ser um inteiro positivo.',
+    },
+  );
 });
 
 test('parseTenantInstancePayload requires unidade for vetor', () => {
