@@ -152,7 +152,7 @@ export function parseTenantInstancePayload(body = {}) {
     syncIncrementalCron: isTrier ? optionalString(body.syncIncrementalCron, 120) || '0 */2 * * *' : null,
     syncFullCron: isTrier ? optionalString(body.syncFullCron, 120) || '0 3 * * *' : null,
     vetorUnidade: provider === 'vetor' ? requiredString(body.unidade, 'unidade', 20) : null,
-    automatizaShopId: provider === 'automatiza' ? requiredPositiveInteger(body.shopId ?? body.shop_id, 'shopId') : null,
+    automatizaShopId: provider === 'automatiza' ? parsePositiveInteger(body.shopId ?? body.shop_id, 'shopId') : null,
     autoSync: provider === 'trier' ? parseBoolean(body.autoSync, false) : false,
     autoSyncMode: parseAutoSyncMode(body.autoSyncMode),
     apiKey: optionalString(body.apiKey, 200),

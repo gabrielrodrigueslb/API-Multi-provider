@@ -264,7 +264,7 @@ Exemplo criando o cliente e ja disparando a sincronizacao inicial:
 
 ### `POST /api/admin/clientes/automatiza`
 
-Cria um cliente Automatiza apontando para o MySQL e para a loja/filial (`shopId`) que deve responder as consultas.
+Cria um cliente Automatiza apontando para o MySQL. A loja/filial (`shopId`) passa no body de cada consulta.
 
 Body:
 
@@ -276,8 +276,7 @@ Body:
   "database": "automatiza",
   "user": "unicocontato",
   "password": "unicocontato",
-  "ssl": false,
-  "shopId": 22
+  "ssl": false
 }
 ```
 
@@ -288,7 +287,6 @@ Campos obrigatorios:
 - `database`
 - `user`
 - `password`
-- `shopId`
 
 Defaults:
 
@@ -297,7 +295,7 @@ Defaults:
 
 Observacao:
 
-- o mesmo produto existe em varias lojas no Automatiza, entao o `shopId` e obrigatorio para evitar respostas duplicadas por EAN
+- o mesmo produto existe em varias lojas no Automatiza, entao o `shopId` e obrigatorio na consulta por EAN para evitar respostas duplicadas
 
 ### `POST /api/produtos/automatiza/consultar-eans`
 
@@ -307,6 +305,7 @@ Body:
 
 ```json
 {
+  "shopId": 22,
   "eans": ["7891317158118"]
 }
 ```

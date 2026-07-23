@@ -84,10 +84,17 @@ export function parseConsultEansPayload(body = {}, options = {}) {
       body.unidadeNegocioId ?? body.unidade_negocio_id,
       'unidadeNegocioId',
     ),
+    shopId: optionalPositiveInteger(body.shopId ?? body.shop_id, 'shopId'),
   };
 
   if (options.requireUnidadeNegocioId && parsed.unidadeNegocioId === null) {
     const error = new Error('O campo "unidadeNegocioId" e obrigatorio para consultas Alpha7.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (options.requireShopId && parsed.shopId === null) {
+    const error = new Error('O campo "shopId" e obrigatorio para consultas Automatiza.');
     error.statusCode = 400;
     throw error;
   }

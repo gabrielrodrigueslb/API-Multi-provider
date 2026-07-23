@@ -227,7 +227,10 @@ export async function consultProductsByEan(clientConfig, payload = {}) {
   } else if (clientConfig.provider === 'automatiza') {
     const productsByEan = await fetchAutomatizaProductsByEan(
       clientConfig,
-      orderedEans.map((item) => item.original),
+      {
+        ...payload,
+        eans: orderedEans.map((item) => item.original),
+      },
     );
 
     result = {

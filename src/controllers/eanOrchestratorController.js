@@ -17,6 +17,7 @@ async function consultEansByProvider(request, response, next, provider) {
     ensureClientProvider(request, provider);
     const payload = parseConsultEansPayload(request.body, {
       requireUnidadeNegocioId: provider === 'alpha7',
+      requireShopId: provider === 'automatiza',
     });
 
     logger.debug(
@@ -27,6 +28,7 @@ async function consultEansByProvider(request, response, next, provider) {
         port: request.clientDatabase?.port,
         database: request.clientDatabase?.database,
         unidadeNegocioId: payload.unidadeNegocioId ?? null,
+        shopId: payload.shopId ?? null,
         eans: payload.eans,
       },
       'Payload de consulta recebido',
