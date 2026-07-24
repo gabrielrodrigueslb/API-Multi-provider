@@ -4,14 +4,24 @@ function pickDiscountMetric(payload = {}) {
   const candidates = [
     payload.valorPromocao,
     payload.precooferta,
-    payload.valorVenda,
-    payload.percentualDesconto,
-    payload.percentualDescontoMax,
   ];
 
   for (const candidate of candidates) {
     const value = Number(candidate);
     if (Number.isFinite(value)) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function pickDiscountPercent(payload = {}) {
+  const candidates = [payload.percentualDescontoMax, payload.percentualDesconto];
+
+  for (const candidate of candidates) {
+    const value = Number(candidate);
+    if (Number.isFinite(value) && value > 0) {
       return value;
     }
   }
@@ -31,6 +41,7 @@ function formatDiscount(row) {
     dataInicio: row.starts_at ? new Date(row.starts_at).toISOString() : null,
     dataFim: row.ends_at ? new Date(row.ends_at).toISOString() : null,
     valorReferencia: pickDiscountMetric(payload),
+    percentualDesconto: pickDiscountPercent(payload),
   };
 }
 
@@ -86,6 +97,15 @@ function buildBestDiscount(discounts = [], fallbackValue) {
   return Math.min(...numericValues);
 }
 
+function getMaximumDiscountPercent(productPayload = {}, discounts = []) {
+  const percentages = [
+    pickDiscountPercent(productPayload),
+    ...discounts.map((discount) => discount.percentualDesconto),
+  ].filter(Number.isFinite);
+
+  return percentages.length ? Math.max(...percentages) : null;
+}
+
 export async function consultTenantCatalogByEans(tenant, eans = []) {
   const now = Date.now();
   const requested = eans.map((ean) => ({
@@ -120,6 +140,7 @@ export async function consultTenantCatalogByEans(tenant, eans = []) {
         estoque: product.stock_quantity === null ? 0 : Number(product.stock_quantity),
         ativo: product.is_active,
         melhorDesconto: buildBestDiscount(productDiscounts, product.value_sale === null ? null : Number(product.value_sale)),
+        percentualDescontoMax: getMaximumDiscountPercent(product.payload, productDiscounts),
         descontos: productDiscounts,
       };
     })
@@ -134,4 +155,6 @@ export const _internals = {
   buildBestDiscount,
   isDiscountActiveNow,
   pickDiscountMetric,
+  pickDiscountPercent,
+  getMaximumDiscountPercent,
 };
