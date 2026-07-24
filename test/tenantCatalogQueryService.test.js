@@ -3,10 +3,26 @@ import assert from 'node:assert/strict';
 
 import { _internals } from '../src/services/tenantCatalogQueryService.js';
 
-test('pickDiscountMetric prioritizes promotional values over percentual fallback', () => {
+test('pickDiscountMetric only accepts monetary promotional values', () => {
   assert.equal(_internals.pickDiscountMetric({ valorPromocao: '9.99', percentualDesconto: '10' }), 9.99);
-  assert.equal(_internals.pickDiscountMetric({ percentualDescontoMax: '12.5' }), 12.5);
+  assert.equal(_internals.pickDiscountMetric({ percentualDescontoMax: '12.5' }), null);
   assert.equal(_internals.pickDiscountMetric({}), null);
+});
+
+test('pickDiscountPercent prefers the maximum discount from Trier', () => {
+  assert.equal(_internals.pickDiscountPercent({ percentualDesconto: '0', percentualDescontoMax: '50' }), 50);
+  assert.equal(_internals.pickDiscountPercent({ percentualDesconto: '15' }), 15);
+  assert.equal(_internals.pickDiscountPercent({ percentualDescontoMax: '0' }), null);
+});
+
+test('getMaximumDiscountPercent exposes the highest product or campaign percentage', () => {
+  assert.equal(
+    _internals.getMaximumDiscountPercent(
+      { percentualDesconto: 0, percentualDescontoMax: 50 },
+      [{ percentualDesconto: 25 }],
+    ),
+    50,
+  );
 });
 
 test('buildBestDiscount returns lower promotional value when available', () => {
