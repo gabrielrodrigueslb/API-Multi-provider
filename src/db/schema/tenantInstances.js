@@ -27,6 +27,8 @@ export const tenantInstances = instancesSchema.table('tenant_instances', {
   // Vetor filial/unidade code (cdFilial), used to scope live product queries.
   vetorUnidade: text('vetor_unidade'),
   automatizaShopId: integer('automatiza_shop_id'),
+  deliveryCompanyId: text('delivery_company_id'),
+  deliveryErpId: text('delivery_erp_id'),
   lastIncrementalSyncAt: timestamp('last_incremental_sync_at', { withTimezone: true }),
   lastFullSyncAt: timestamp('last_full_sync_at', { withTimezone: true }),
   status: text('status').notNull().default('active'),

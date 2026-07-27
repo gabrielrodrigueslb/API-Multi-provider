@@ -34,6 +34,8 @@ test('parseTenantInstancePayload accepts valid instance payload', () => {
     syncFullCron: '0 3 * * *',
     vetorUnidade: null,
     automatizaShopId: null,
+    deliveryCompanyId: null,
+    deliveryErpId: null,
     autoSync: false,
     autoSyncMode: 'bootstrap',
     apiKey: 'minha-chave',
@@ -229,6 +231,20 @@ test('parseTenantInstancePayload accepts automatiza without shopId', () => {
   });
 
   assert.equal(payload.automatizaShopId, null);
+});
+
+test('parseTenantInstancePayload accepts Delivery Pharmacy credentials', () => {
+  const payload = parseTenantInstancePayload({
+    provider: 'deliverypharmacy',
+    name: 'cliente_delivery',
+    deliveryToken: 'token-delivery',
+    empresaId: 'empresa-1',
+    erpId: 'erp-1',
+  });
+
+  assert.equal(payload.deliveryCompanyId, 'empresa-1');
+  assert.equal(payload.deliveryErpId, 'erp-1');
+  assert.equal(payload.providerToken, 'token-delivery');
 });
 
 test('parseTenantInstancePayload requires unidade for vetor', () => {

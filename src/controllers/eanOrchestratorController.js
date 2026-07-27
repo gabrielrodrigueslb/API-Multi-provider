@@ -60,3 +60,6 @@ export async function consultVetorEansController(request, response, next) {
 export async function consultAutomatizaEansController(request, response, next) {
   return consultEansByProvider(request, response, next, 'automatiza');
 }
+export async function consultDeliveryPharmacyEansController(request, response, next) {
+  return consultEansByProvider(request, response, next, 'deliverypharmacy');
+}

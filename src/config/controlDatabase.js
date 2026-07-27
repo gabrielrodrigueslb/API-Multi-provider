@@ -161,6 +161,11 @@ export async function bootstrapControlDatabase() {
     alter table ${schemaName}.tenant_instances
     add column if not exists automatiza_shop_id integer
   `);
+  await controlPool.query(`
+    alter table ${schemaName}.tenant_instances
+    add column if not exists delivery_company_id text,
+    add column if not exists delivery_erp_id text
+  `);
 }
 
 export async function pingControlDatabase() {

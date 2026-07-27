@@ -3,6 +3,7 @@ import { consultTenantCatalogByEans } from './tenantCatalogQueryService.js';
 import { fetchClientProductsByEan } from './clientProductService.js';
 import { fetchAutomatizaProductsByEan } from './automatizaProductService.js';
 import { fetchVetorProductsByEan } from './vetorApiClient.js';
+import { fetchDeliveryPharmacyProductsByEan } from './deliveryPharmacyProductService.js';
 import { logger } from '../config/logger.js';
 
 function dedupeEansPreservingOrder(eans = []) {
@@ -245,6 +246,9 @@ export async function consultProductsByEan(clientConfig, payload = {}) {
     result = {
       produtos: mapVetorProducts(orderedEans, productsByEan),
     };
+  } else if (clientConfig.provider === 'deliverypharmacy') {
+    const productsByEan = await fetchDeliveryPharmacyProductsByEan(clientConfig, orderedEans.map((item) => item.original));
+    result = { produtos: orderedEans.map((item) => productsByEan.get(item.normalized)).filter(Boolean).map((product) => ({ ...product, ativo: product.estoque > 0, descontos: [], leve: null, pague: null })) };
   } else {
     result = await consultTenantCatalogByEans(
       clientConfig,

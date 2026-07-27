@@ -35,6 +35,8 @@ function mapRowToClientConfig(row) {
     syncFullCron: row.syncFullCron,
     vetorUnidade: row.vetorUnidade,
     automatizaShopId: row.automatizaShopId,
+    deliveryCompanyId: row.deliveryCompanyId,
+    deliveryErpId: row.deliveryErpId,
     lastIncrementalSyncAt: row.lastIncrementalSyncAt,
     lastFullSyncAt: row.lastFullSyncAt,
     status: row.status,
@@ -58,6 +60,8 @@ function mapPublicInstance(row) {
     syncFullCron: row.syncFullCron,
     vetorUnidade: row.vetorUnidade,
     automatizaShopId: row.automatizaShopId,
+    deliveryCompanyId: row.deliveryCompanyId,
+    deliveryErpId: row.deliveryErpId,
     lastIncrementalSyncAt: row.lastIncrementalSyncAt,
     lastFullSyncAt: row.lastFullSyncAt,
     status: row.status,
@@ -156,6 +160,8 @@ export async function createTenantInstance(payload = {}) {
       syncFullCron: payload.syncFullCron,
       vetorUnidade: payload.vetorUnidade,
       automatizaShopId: payload.automatizaShopId,
+      deliveryCompanyId: payload.deliveryCompanyId,
+      deliveryErpId: payload.deliveryErpId,
       status: payload.status || 'active',
     })
     .returning();

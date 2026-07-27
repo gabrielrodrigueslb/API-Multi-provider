@@ -95,7 +95,7 @@ function parseAutoSyncMode(value) {
 function parseProvider(value) {
   const normalized = optionalString(value, 20) || 'trier';
 
-  if (['trier', 'alpha7', 'vetor', 'automatiza'].includes(normalized)) {
+  if (['trier', 'alpha7', 'vetor', 'automatiza', 'deliverypharmacy'].includes(normalized)) {
     return normalized;
   }
 
@@ -131,6 +131,7 @@ export function parseTenantInstancePayload(body = {}) {
   const isTrier = provider === 'trier';
   const isAlpha7 = provider === 'alpha7';
   const isAutomatiza = provider === 'automatiza';
+  const isDelivery = provider === 'deliverypharmacy';
   const trierCacheDb = isTrier ? resolveTrierCacheDbConnection() : null;
 
   return {
@@ -141,18 +142,20 @@ export function parseTenantInstancePayload(body = {}) {
     // instead of silently filling them with trier defaults.
     trierInstance: isTrier ? optionalString(body.trierInstance ?? body.instance, 120) || 'sgfpod1' : null,
     trierBaseUrl: isTrier ? optionalString(body.trierBaseUrl, 255) || env.trierDefaultBaseUrl : null,
-    providerToken: provider === 'trier' ? requiredString(body.trierToken, 'trierToken', 500) : provider === 'vetor' ? requiredString(body.vetorToken, 'vetorToken', 500) : '',
-    host: isTrier ? trierCacheDb.host : isAlpha7 || isAutomatiza ? requiredString(body.host, 'host', 200) : optionalString(body.host, 200) || 'n/a',
-    port: isTrier ? trierCacheDb.port : isAlpha7 ? parsePositiveInteger(body.port, 'port', 5432) : isAutomatiza ? parsePositiveInteger(body.port, 'port', 3306) : 0,
-    database: isTrier || isAlpha7 || isAutomatiza ? requiredString(body.database, 'database', 120) : optionalString(body.database, 120) || 'n/a',
-    user: isTrier ? trierCacheDb.user : isAlpha7 || isAutomatiza ? requiredString(body.user, 'user', 120) : optionalString(body.user, 120) || 'n/a',
-    password: isTrier ? trierCacheDb.password : isAlpha7 || isAutomatiza ? requiredString(body.password, 'password', 200) : optionalString(body.password, 200) || 'n/a',
+    providerToken: provider === 'trier' ? requiredString(body.trierToken, 'trierToken', 500) : provider === 'vetor' ? requiredString(body.vetorToken, 'vetorToken', 500) : isDelivery ? requiredString(body.deliveryToken, 'deliveryToken', 500) : '',
+    host: isTrier ? trierCacheDb.host : isAlpha7 || isAutomatiza ? requiredString(body.host, 'host', 200) : isDelivery ? 'api.deliverypharmacy.com.br' : optionalString(body.host, 200) || 'n/a',
+    port: isTrier ? trierCacheDb.port : isAlpha7 ? parsePositiveInteger(body.port, 'port', 5432) : isAutomatiza ? parsePositiveInteger(body.port, 'port', 3306) : isDelivery ? 443 : 0,
+    database: isTrier || isAlpha7 || isAutomatiza ? requiredString(body.database, 'database', 120) : 'deliverypharmacy',
+    user: isTrier ? trierCacheDb.user : isAlpha7 || isAutomatiza ? requiredString(body.user, 'user', 120) : 'n/a',
+    password: isTrier ? trierCacheDb.password : isAlpha7 || isAutomatiza ? requiredString(body.password, 'password', 200) : 'n/a',
     ssl: isTrier ? trierCacheDb.ssl : parseBoolean(body.ssl, false),
     cacheSchema: isTrier ? optionalString(body.cacheSchema, 120) || 'trier_cache' : null,
     syncIncrementalCron: isTrier ? optionalString(body.syncIncrementalCron, 120) || '0 */2 * * *' : null,
     syncFullCron: isTrier ? optionalString(body.syncFullCron, 120) || '0 3 * * *' : null,
     vetorUnidade: provider === 'vetor' ? requiredString(body.unidade, 'unidade', 20) : null,
     automatizaShopId: provider === 'automatiza' ? parsePositiveInteger(body.shopId ?? body.shop_id, 'shopId') : null,
+    deliveryCompanyId: isDelivery ? requiredString(body.empresaId, 'empresaId', 100) : null,
+    deliveryErpId: isDelivery ? requiredString(body.erpId, 'erpId', 100) : null,
     autoSync: provider === 'trier' ? parseBoolean(body.autoSync, false) : false,
     autoSyncMode: parseAutoSyncMode(body.autoSyncMode),
     apiKey: optionalString(body.apiKey, 200),
