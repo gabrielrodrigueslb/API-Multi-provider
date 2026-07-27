@@ -42,8 +42,8 @@ export async function fetchDeliveryPharmacyProductsByEan(client, eans) {
   for (const item of await loadCatalog(client)) {
     const ean = normalizeEan(value(item, 'ean', 'codigoBarras', 'codigo_barras'));
     if (!ean || !wanted.has(ean)) continue;
-    const price = Number(value(item, 'preco', 'price', 'valorVenda'));
-    const promo = Number(value(item, 'precoPromocional', 'price_promo', 'valorPromocao'));
+    const price = Number(value(item, 'preco', 'price', 'valorVenda', 'valor'));
+    const promo = Number(value(item, 'precoPromocional', 'price_promo', 'valorPromocao', 'valor_promocao'));
     result.set(ean, { ean, codigoProduto: value(item, 'id', 'codigo', 'product_id'), nome: value(item, 'nome', 'name', 'descricao', 'description'), valorVenda: Number.isFinite(price) ? price : null, estoque: Number(value(item, 'estoque', 'quantity')) || 0, melhorDesconto: Number.isFinite(promo) && promo < price ? promo : price, raw: item });
   }
   return result;
