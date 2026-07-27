@@ -40,7 +40,6 @@ async function createTenantInstanceWithProvider(request, response, next, provide
     }
 
     const created = await createTenantInstance(payload);
-
     if (isTrier) {
       await registerTenantSyncSchedule({
         ...created.instance,
