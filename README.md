@@ -6,6 +6,7 @@ API Node.js para operar multiplos clientes com varios providers no mesmo codigo:
 - `alpha7`: consulta diretamente o banco do cliente
 - `vetor`: consulta diretamente a API Vetor por EAN
 - `automatiza`: consulta diretamente o MySQL do cliente por EAN
+- `deliverypharmacy`: consulta diretamente o catalogo da Delivery Pharmacy por EAN
 
 O consumo continua unificado por `x-api-key`.
 
@@ -17,6 +18,7 @@ O consumo continua unificado por `x-api-key`.
 - para Trier, sincroniza produtos e descontos com BullMQ + Redis
 - para Alpha 7, consulta direto no banco do cliente
 - para Automatiza, consulta direto no MySQL do cliente filtrando por `shop_id`
+- para Delivery Pharmacy, consulta direto na API `https://api.deliverypharmacy.com.br/v2/produto`
 - consulta produtos por EAN usando a `apiKey` do cliente
 - retorna somente descontos/promocoes ativas no momento da consulta
 
@@ -116,7 +118,7 @@ npm.cmd run dev
 ## Fluxo atual
 
 1. A API sobe conectando no banco master.
-2. Voce cria um cliente em `POST /api/admin/clientes/trier`, `POST /api/admin/clientes/alpha7`, `POST /api/admin/clientes/vetor` ou `POST /api/admin/clientes/automatiza`.
+2. Voce cria um cliente em `POST /api/admin/clientes/trier`, `POST /api/admin/clientes/alpha7`, `POST /api/admin/clientes/vetor`, `POST /api/admin/clientes/automatiza` ou `POST /api/admin/clientes/deliverypharmacy`.
 3. Nesse momento a API:
    - valida os dados
    - grava o cliente no banco master
@@ -264,6 +266,38 @@ Exemplo criando o cliente e ja disparando a sincronizacao inicial:
 
 ### `POST /api/admin/clientes/automatiza`
 
+### `POST /api/admin/clientes/deliverypharmacy`
+
+Cria um cliente Delivery Pharmacy para consultar o catalogo remoto por EAN.
+
+Body:
+
+```json
+{
+  "name": "cliente_delivery",
+  "deliveryToken": "TOKEN_DELIVERY_PHARMACY",
+  "empresaId": "empresa-1",
+  "erpId": "erp-1"
+}
+```
+
+Campos obrigatorios:
+
+- `name`
+- `deliveryToken`
+- `empresaId`
+- `erpId`
+
+Observacoes:
+
+- o provider fica salvo como `deliverypharmacy`
+- esse cadastro nao depende de banco do cliente
+- internamente a API consulta o endpoint externo `GET https://api.deliverypharmacy.com.br/v2/produto`
+- os headers enviados ao provider externo sao:
+  `Authorization: Bearer <deliveryToken>`,
+  `x-id-empresa: <empresaId>`,
+  `x-id-erp: <erpId>`
+
 Cria um cliente Automatiza apontando para o MySQL. A loja/filial (`shopId`) passa no body de cada consulta.
 
 Body:
@@ -297,7 +331,7 @@ Observacao:
 
 - o mesmo produto existe em varias lojas no Automatiza, entao o `shopId` e obrigatorio na consulta por EAN para evitar respostas duplicadas
 
-### `POST /api/produtos/automatiza/consultar-eans`
+### `POST /api/automatiza/consultar-eans`
 
 Consulta produtos do cliente Automatiza por EAN.
 
@@ -309,6 +343,58 @@ Body:
   "eans": ["7891317158118"]
 }
 ```
+
+### `POST /api/deliverypharmacy/consultar-eans`
+
+Consulta produtos do cliente Delivery Pharmacy por EAN.
+
+Body:
+
+```json
+{
+  "eans": ["7891025118763"]
+}
+```
+
+Resposta esperada:
+
+```json
+{
+  "status": "ok",
+  "produtos": [
+    {
+      "ean": "7891025118763",
+      "codigoProduto": "12345",
+      "nome": "APTANUTRI PROFUTURA 3 FORMULA INFANTIL 800G",
+      "valorVenda": 89.9,
+      "estoque": 12,
+      "ativo": true,
+      "melhorDesconto": 79.9,
+      "descontos": [
+        {
+          "tipo": "melhor",
+          "chave": "deliverypharmacy:7891025118763",
+          "produtoCodigo": "12345",
+          "ean": "7891025118763",
+          "nomeProduto": "APTANUTRI PROFUTURA 3 FORMULA INFANTIL 800G",
+          "dataInicio": null,
+          "dataFim": null,
+          "valorReferencia": 79.9
+        }
+      ],
+      "leve": null,
+      "pague": null
+    }
+  ]
+}
+```
+
+Observacoes:
+
+- rota autenticada com a `x-api-key` do cliente, igual aos demais providers
+- a rota registrada no codigo e `POST /api/deliverypharmacy/consultar-eans`
+- para cada consulta, a API filtra localmente os EANs sobre o catalogo retornado pelo provider externo
+- hoje nao existe `shopId` nem `unidadeNegocioId` para Delivery Pharmacy nesta integracao
 
 Resposta esperada:
 
@@ -512,6 +598,7 @@ Resposta exemplo:
 - remove duplicados preservando ordem
 - Trier consulta pelo cache local do cliente
 - Alpha 7 consulta direto no banco do cliente
+- Delivery Pharmacy consulta o catalogo remoto e filtra pelos EANs solicitados
 - retorna apenas produtos encontrados
 - retorna apenas descontos ativos naquele momento
 - `melhorDesconto` usa o menor valor promocional ativo encontrado
