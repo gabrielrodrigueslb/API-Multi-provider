@@ -25,9 +25,23 @@ test('getMaximumDiscountPercent exposes the highest product or campaign percenta
   );
 });
 
+test('a Trier percentage discount is converted to its monetary value', () => {
+  assert.equal(_internals.calculateDiscountedValue(29.16, 50), 14.58);
+  assert.equal(_internals.getDiscountValue({ valorPromocao: 29.16, percentualDescontoMax: 50 }, 29.16), 14.58);
+  assert.equal(_internals.calculateAppliedDiscountPercent(29.16, 14.58), 50);
+});
+
+test('the lowest monetary value wins when a discount has a percentage and price', () => {
+  assert.equal(
+    _internals.getDiscountValue({ valorPromocao: 10, percentualDescontoMax: 50 }, 29.16),
+    10,
+  );
+});
+
 test('buildBestDiscount returns lower promotional value when available', () => {
   const discounts = [{ valorReferencia: 14.9 }, { valorReferencia: 9.5 }, { valorReferencia: null }];
   assert.equal(_internals.buildBestDiscount(discounts, 19.9), 9.5);
+  assert.equal(_internals.buildBestDiscount([{ valorReferencia: 29.9 }], 19.9), 19.9);
   assert.equal(_internals.buildBestDiscount([], 19.9), 19.9);
   assert.equal(_internals.buildBestDiscount([], null), null);
 });

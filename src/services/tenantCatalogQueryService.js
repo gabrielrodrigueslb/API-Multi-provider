@@ -29,8 +29,43 @@ function pickDiscountPercent(payload = {}) {
   return null;
 }
 
-function formatDiscount(row) {
+function roundCurrency(value) {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+function calculateDiscountedValue(valueSale, discountPercent) {
+  const price = Number(valueSale);
+  const percent = Number(discountPercent);
+
+  if (!Number.isFinite(price) || price < 0 || !Number.isFinite(percent) || percent <= 0 || percent > 100) {
+    return null;
+  }
+
+  return roundCurrency(price * (1 - percent / 100));
+}
+
+function calculateAppliedDiscountPercent(valueSale, discountedValue) {
+  const price = Number(valueSale);
+  const value = Number(discountedValue);
+
+  if (!Number.isFinite(price) || price <= 0 || !Number.isFinite(value) || value >= price) {
+    return null;
+  }
+
+  return roundCurrency((1 - value / price) * 100);
+}
+
+function getDiscountValue(payload, valueSale) {
+  const monetaryValue = pickDiscountMetric(payload);
+  const percentageValue = calculateDiscountedValue(valueSale, pickDiscountPercent(payload));
+  const candidates = [monetaryValue, percentageValue].filter(Number.isFinite);
+
+  return candidates.length ? Math.min(...candidates) : null;
+}
+
+function formatDiscount(row, valueSale) {
   const payload = row.payload || {};
+  const valorReferencia = getDiscountValue(payload, valueSale);
 
   return {
     tipo: row.discount_type,
@@ -40,8 +75,9 @@ function formatDiscount(row) {
     nomeProduto: row.product_name,
     dataInicio: row.starts_at ? new Date(row.starts_at).toISOString() : null,
     dataFim: row.ends_at ? new Date(row.ends_at).toISOString() : null,
-    valorReferencia: pickDiscountMetric(payload),
+    valorReferencia,
     percentualDesconto: pickDiscountPercent(payload),
+    percentualAplicado: calculateAppliedDiscountPercent(valueSale, valorReferencia),
   };
 }
 
@@ -60,12 +96,13 @@ function isDiscountActiveNow(discount, now = Date.now()) {
   return true;
 }
 
-function groupDiscounts(discounts = []) {
+function groupDiscounts(discounts = [], productsByCode = new Map()) {
   const byEan = new Map();
   const byCode = new Map();
 
   for (const row of discounts) {
-    const formatted = formatDiscount(row);
+    const product = productsByCode.get(row.product_code);
+    const formatted = formatDiscount(row, product?.value_sale);
 
     if (row.ean_normalized) {
       if (!byEan.has(row.ean_normalized)) {
@@ -88,13 +125,27 @@ function groupDiscounts(discounts = []) {
 }
 
 function buildBestDiscount(discounts = [], fallbackValue) {
-  const numericValues = discounts.map((discount) => discount.valorReferencia).filter(Number.isFinite);
+  const numericValues = [
+    ...discounts.map((discount) => discount.valorReferencia),
+    fallbackValue,
+  ].filter(Number.isFinite);
 
   if (numericValues.length === 0) {
-    return fallbackValue ?? null;
+    return null;
   }
 
   return Math.min(...numericValues);
+}
+
+function getBestDiscount(discounts = [], fallbackValue) {
+  const discountsWithValue = discounts.filter((discount) => Number.isFinite(discount.valorReferencia));
+
+  if (discountsWithValue.length === 0) {
+    return null;
+  }
+
+  const bestValue = buildBestDiscount(discountsWithValue, fallbackValue);
+  return discountsWithValue.find((discount) => discount.valorReferencia === bestValue) || null;
 }
 
 function getMaximumDiscountPercent(productPayload = {}, discounts = []) {
@@ -113,8 +164,9 @@ export async function consultTenantCatalogByEans(tenant, eans = []) {
     normalized: normalizeEan(ean),
   }));
   const { products, discounts } = await fetchCatalogByEans(tenant, eans);
-  const discountsByRef = groupDiscounts(discounts);
   const productsByEan = new Map(products.map((row) => [row.ean_normalized, row]));
+  const productsByCode = new Map(products.map((row) => [row.product_code, row]));
+  const discountsByRef = groupDiscounts(discounts, productsByCode);
 
   const orderedProducts = requested
     .map((item) => {
@@ -131,15 +183,18 @@ export async function consultTenantCatalogByEans(tenant, eans = []) {
           array.findIndex((candidate) => candidate.tipo === discount.tipo && candidate.chave === discount.chave) === index &&
           isDiscountActiveNow(discount, now),
       );
+      const valueSale = product.value_sale === null ? null : Number(product.value_sale);
+      const bestDiscount = getBestDiscount(productDiscounts, valueSale);
 
       return {
         ean: product.ean,
         codigoProduto: product.product_code,
         nome: product.name,
-        valorVenda: product.value_sale === null ? null : Number(product.value_sale),
+        valorVenda: valueSale,
         estoque: product.stock_quantity === null ? 0 : Number(product.stock_quantity),
         ativo: product.is_active,
-        melhorDesconto: buildBestDiscount(productDiscounts, product.value_sale === null ? null : Number(product.value_sale)),
+        melhorDesconto: bestDiscount?.valorReferencia ?? valueSale,
+        percentualMelhorDesconto: bestDiscount?.percentualAplicado ?? null,
         percentualDescontoMax: getMaximumDiscountPercent(product.payload, productDiscounts),
         descontos: productDiscounts,
       };
@@ -156,5 +211,9 @@ export const _internals = {
   isDiscountActiveNow,
   pickDiscountMetric,
   pickDiscountPercent,
+  calculateDiscountedValue,
+  calculateAppliedDiscountPercent,
+  getDiscountValue,
+  getBestDiscount,
   getMaximumDiscountPercent,
 };
