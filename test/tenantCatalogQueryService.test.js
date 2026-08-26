@@ -31,6 +31,33 @@ test('a Trier percentage discount is converted to its monetary value', () => {
   assert.equal(_internals.calculateAppliedDiscountPercent(29.16, 14.58), 50);
 });
 
+test('a product maximum percentage becomes a discount candidate when the discount payload lacks it', () => {
+  assert.deepEqual(
+    _internals.buildProductPercentageDiscount(
+      {
+        product_code: 615083,
+        ean: '7908020500483',
+        ean_normalized: '7908020500483',
+        name: 'NIMESULIDA 100MG 12CP DISP',
+        payload: { percentualDescontoMax: 50 },
+      },
+      29.16,
+    ),
+    {
+      tipo: 'percentual_maximo',
+      chave: 'percentual-maximo:615083:7908020500483',
+      produtoCodigo: 615083,
+      ean: '7908020500483',
+      nomeProduto: 'NIMESULIDA 100MG 12CP DISP',
+      dataInicio: null,
+      dataFim: null,
+      valorReferencia: 14.58,
+      percentualDesconto: 50,
+      percentualAplicado: 50,
+    },
+  );
+});
+
 test('the lowest monetary value wins when a discount has a percentage and price', () => {
   assert.equal(
     _internals.getDiscountValue({ valorPromocao: 10, percentualDescontoMax: 50 }, 29.16),
