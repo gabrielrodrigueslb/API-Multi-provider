@@ -53,8 +53,17 @@ function extractTotal(payload) {
   return total === undefined ? null : Number(total);
 }
 
-function toIsoDate(value) {
-  return new Date(value).toISOString();
+function toTrierDate(value) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    throw new Error('Data invalida para consulta incremental da Trier.');
+  }
+
+  // The Trier altered-record endpoints accept dates only (YYYY-MM-DD).
+  // Sending a JavaScript ISO timestamp, including its time and timezone,
+  // causes a 400 "Erro na conversao da data" response from the provider.
+  return date.toISOString().slice(0, 10);
 }
 
 async function requestJson(url, options) {
@@ -224,8 +233,8 @@ export async function fetchAllProductsPaged(tenant, options = {}) {
 
 export async function fetchChangedProducts(tenant, windowStart, windowEnd) {
   const result = await fetchPagedResource(tenant, '/rest/integracao/produto/obter-alterados-v1', {
-    dataInicial: toIsoDate(windowStart),
-    dataFinal: toIsoDate(windowEnd),
+    dataInicial: toTrierDate(windowStart),
+    dataFinal: toTrierDate(windowEnd),
     processaCustoMedio: false,
   });
   return result.items;
@@ -236,8 +245,8 @@ export async function fetchChangedProductsPaged(tenant, windowStart, windowEnd, 
     tenant,
     '/rest/integracao/produto/obter-alterados-v1',
     {
-      dataInicial: toIsoDate(windowStart),
-      dataFinal: toIsoDate(windowEnd),
+      dataInicial: toTrierDate(windowStart),
+      dataFinal: toTrierDate(windowEnd),
       processaCustoMedio: false,
     },
     options,
@@ -255,8 +264,8 @@ export async function fetchAllStocksPaged(tenant, options = {}) {
 
 export async function fetchChangedStocks(tenant, windowStart, windowEnd) {
   const result = await fetchPagedResource(tenant, '/rest/integracao/estoque/obter-alterados-v1', {
-    dataInicial: toIsoDate(windowStart),
-    dataFinal: toIsoDate(windowEnd),
+    dataInicial: toTrierDate(windowStart),
+    dataFinal: toTrierDate(windowEnd),
   });
   return result.items;
 }
@@ -266,8 +275,8 @@ export async function fetchChangedStocksPaged(tenant, windowStart, windowEnd, op
     tenant,
     '/rest/integracao/estoque/obter-alterados-v1',
     {
-      dataInicial: toIsoDate(windowStart),
-      dataFinal: toIsoDate(windowEnd),
+      dataInicial: toTrierDate(windowStart),
+      dataFinal: toTrierDate(windowEnd),
     },
     options,
   );
@@ -285,8 +294,8 @@ export async function fetchAllDiscountsPaged(tenant, resource, options = {}) {
 export async function fetchChangedDiscounts(tenant, resource, windowStart, windowEnd) {
   const result = await fetchPagedResource(tenant, resource.alteredPath, {
     ...(resource.query || {}),
-    dataInicial: toIsoDate(windowStart),
-    dataFinal: toIsoDate(windowEnd),
+    dataInicial: toTrierDate(windowStart),
+    dataFinal: toTrierDate(windowEnd),
   });
   return result.items;
 }
@@ -297,8 +306,8 @@ export async function fetchChangedDiscountsPaged(tenant, resource, windowStart, 
     resource.alteredPath,
     {
       ...(resource.query || {}),
-      dataInicial: toIsoDate(windowStart),
-      dataFinal: toIsoDate(windowEnd),
+      dataInicial: toTrierDate(windowStart),
+      dataFinal: toTrierDate(windowEnd),
     },
     options,
   );
@@ -308,4 +317,5 @@ export const _internals = {
   extractItems,
   extractTotal,
   normalizeBaseUrl,
+  toTrierDate,
 };

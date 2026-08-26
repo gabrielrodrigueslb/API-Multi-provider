@@ -15,3 +15,8 @@ test('extractTotal reads common pagination shapes', () => {
   assert.equal(_internals.extractTotal({ pagination: { total: 30 } }), 30);
   assert.equal(_internals.extractTotal({}), null);
 });
+
+test('toTrierDate sends only the date accepted by incremental endpoints', () => {
+  assert.equal(_internals.toTrierDate('2026-08-26T06:15:23.861Z'), '2026-08-26');
+  assert.throws(() => _internals.toTrierDate('not-a-date'), /Data invalida/);
+});
