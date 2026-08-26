@@ -512,6 +512,7 @@ Resposta:
       "estoque": 3,
       "ativo": true,
       "melhorDesconto": 71.5,
+      "percentualMelhorDesconto": 10.63,
       "descontos": [
         {
           "tipo": "melhor",
@@ -521,7 +522,8 @@ Resposta:
           "nomeProduto": "FR PAMPERS CONF SEC G 38UN",
           "dataInicio": null,
           "dataFim": null,
-          "valorReferencia": 71.5
+          "valorReferencia": 71.5,
+          "percentualAplicado": 10.63
         },
         {
           "tipo": "vigencia",
@@ -531,7 +533,8 @@ Resposta:
           "nomeProduto": null,
           "dataInicio": "2025-01-01T00:00:00.000Z",
           "dataFim": "2099-01-01T00:00:00.000Z",
-          "valorReferencia": 71.5
+          "valorReferencia": 71.5,
+          "percentualAplicado": 10.63
         }
       ]
     }
@@ -601,7 +604,8 @@ Resposta exemplo:
 - Delivery Pharmacy consulta o catalogo remoto e filtra pelos EANs solicitados
 - retorna apenas produtos encontrados
 - retorna apenas descontos ativos naquele momento
-- `melhorDesconto` usa o menor valor promocional ativo encontrado
+- `melhorDesconto` usa o menor valor promocional ativo encontrado. Quando a Trier informar apenas percentual (por exemplo, `percentualDescontoMax: 50`), a API calcula o valor sobre `valorVenda` antes de comparar os descontos.
+- `percentualMelhorDesconto` informa o percentual correspondente ao menor valor encontrado; cada item de `descontos` também inclui o percentual fornecido pela origem e o percentual efetivamente aplicado ao seu `valorReferencia`.
 
 ## Sincronizacao automatica
 
