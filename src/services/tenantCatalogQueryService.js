@@ -81,6 +81,28 @@ function formatDiscount(row, valueSale) {
   };
 }
 
+function buildProductPercentageDiscount(product, valueSale) {
+  const percentualDesconto = pickDiscountPercent(product.payload);
+  const valorReferencia = calculateDiscountedValue(valueSale, percentualDesconto);
+
+  if (!Number.isFinite(valorReferencia)) {
+    return null;
+  }
+
+  return {
+    tipo: 'percentual_maximo',
+    chave: `percentual-maximo:${product.product_code}:${product.ean_normalized}`,
+    produtoCodigo: product.product_code,
+    ean: product.ean,
+    nomeProduto: product.name,
+    dataInicio: null,
+    dataFim: null,
+    valorReferencia,
+    percentualDesconto,
+    percentualAplicado: calculateAppliedDiscountPercent(valueSale, valorReferencia),
+  };
+}
+
 function isDiscountActiveNow(discount, now = Date.now()) {
   const startsAt = discount.dataInicio ? new Date(discount.dataInicio).getTime() : null;
   const endsAt = discount.dataFim ? new Date(discount.dataFim).getTime() : null;
@@ -184,6 +206,10 @@ export async function consultTenantCatalogByEans(tenant, eans = []) {
           isDiscountActiveNow(discount, now),
       );
       const valueSale = product.value_sale === null ? null : Number(product.value_sale);
+      const productPercentageDiscount = buildProductPercentageDiscount(product, valueSale);
+      if (productPercentageDiscount) {
+        productDiscounts.push(productPercentageDiscount);
+      }
       const bestDiscount = getBestDiscount(productDiscounts, valueSale);
 
       return {
@@ -213,6 +239,7 @@ export const _internals = {
   pickDiscountPercent,
   calculateDiscountedValue,
   calculateAppliedDiscountPercent,
+  buildProductPercentageDiscount,
   getDiscountValue,
   getBestDiscount,
   getMaximumDiscountPercent,
